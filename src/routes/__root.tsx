@@ -3,7 +3,7 @@ import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import appCss from "../styles.css?url";
 
-const APP_NAME = "Axion Drive Sizing";
+const APP_NAME = "Axion · Drive sizing";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -13,8 +13,7 @@ export const Route = createRootRoute({
       { title: APP_NAME },
       {
         name: "description",
-        content:
-          "Size motors and gearboxes for conveyors, cranes, screws, rotary tables, fans and pumps.",
+        content: "Unofficial industrial motion sizer: torque, speed and first-pass motor / gearbox suggestions.",
       },
       { name: "theme-color", content: "#0c0e11" },
     ],

@@ -1,6 +1,6 @@
 import type { Gearbox, Motor } from "./types";
 
-/** Published SEW-EURODRIVE CM3C / CM3P standstill data (M0, Mpk, Jmot ×10⁻⁴ kg·m², speed class). */
+/** SEW-EURODRIVE published CM3C standstill data. Jmot is ×10⁻⁴ kg·m². */
 const CM3C_ROWS = [
   { size: "63", length: "S" as const, m0: 2.7, mpk: 8.1, mass: 3.16, jE4: 1.3, n: 3000 },
   { size: "63", length: "M" as const, m0: 4.9, mpk: 14.7, mass: 4.51, jE4: 2.5, n: 4500 },
@@ -48,7 +48,7 @@ export const MOTORS: Motor[] = [
     voltageV: 400,
     frame: row.size,
     massKg: row.mass,
-    notes: `SEW-EURODRIVE CM3C medium-inertia, speed class ${row.n} min⁻¹. M0 ${row.m0} N·m, Mpk ${row.mpk} N·m.`,
+    notes: `SEW-EURODRIVE CM3C medium-inertia, ${row.n} min⁻¹. M0 ${row.m0} N·m, Mpk ${row.mpk} N·m.`,
   })),
   ...CM3P_ROWS.map((row) => ({
     id: `cm3p-${row.size}${row.length}-${row.n}`,
@@ -65,65 +65,72 @@ export const MOTORS: Motor[] = [
     voltageV: 400,
     frame: row.size,
     massKg: row.mass,
-    notes: `SEW-EURODRIVE CM3P high-dynamic, speed class ${row.n} min⁻¹. M0 ${row.m0} N·m, Mpk ${row.mpk} N·m.`,
+    notes: `SEW-EURODRIVE CM3P high-dynamic, ${row.n} min⁻¹. M0 ${row.m0} N·m, Mpk ${row.mpk} N·m.`,
   })),
 ];
 
 const PSF_SIZES = [
-  { size: "121", t: 25, nMax: 6000, back: 8, mass: 1.8 },
-  { size: "221", t: 55, nMax: 6000, back: 6, mass: 3.2 },
-  { size: "321", t: 110, nMax: 5500, back: 5, mass: 5.4 },
-  { size: "521", t: 300, nMax: 4500, back: 4, mass: 9.5 },
-  { size: "621", t: 600, nMax: 4000, back: 4, mass: 16 },
-  { size: "721", t: 1000, nMax: 3500, back: 4, mass: 28 },
-  { size: "821", t: 1750, nMax: 3000, back: 4, mass: 45 },
-  { size: "921", t: 3000, nMax: 2500, back: 4, mass: 72 },
+  { size: "121", t: 25, nMax: 6000, back: 8, mass: 1.8, frames: ["63", "71"] },
+  { size: "221", t: 55, nMax: 6000, back: 6, mass: 3.2, frames: ["63", "71", "80"] },
+  { size: "321", t: 110, nMax: 5500, back: 5, mass: 5.4, frames: ["71", "80", "100"] },
+  { size: "521", t: 300, nMax: 4500, back: 4, mass: 9.5, frames: ["80", "100"] },
+  { size: "621", t: 600, nMax: 4000, back: 4, mass: 16, frames: ["80", "100"] },
+  { size: "721", t: 1000, nMax: 3500, back: 4, mass: 28, frames: ["100"] },
+  { size: "821", t: 1750, nMax: 3000, back: 4, mass: 45, frames: ["100"] },
+  { size: "921", t: 3000, nMax: 2500, back: 4, mass: 72, frames: ["100"] },
 ];
+/** Official PS.F coaxial published i set (PSF121 table; same ladder used across sizes). */
 const PSF_I1 = [3, 4, 5, 7, 10];
-const PSF_I2 = [16, 20, 25, 40, 70, 100];
+const PSF_I2 = [16, 20, 25, 28, 35, 40, 49, 70, 100];
 
 const PSC_SIZES = [
-  { size: "221", t: 30, nMax: 6000, back: 10, mass: 2.4 },
-  { size: "321", t: 65, nMax: 5500, back: 10, mass: 4.1 },
-  { size: "521", t: 160, nMax: 4500, back: 10, mass: 7.8 },
-  { size: "621", t: 320, nMax: 4000, back: 10, mass: 13 },
+  { size: "221", t: 30, nMax: 6000, back: 10, mass: 2.4, frames: ["63", "71"] },
+  { size: "321", t: 65, nMax: 5500, back: 10, mass: 4.1, frames: ["71", "80"] },
+  { size: "521", t: 160, nMax: 4500, back: 10, mass: 7.8, frames: ["80", "100"] },
+  { size: "621", t: 320, nMax: 4000, back: 10, mass: 13, frames: ["100"] },
 ];
-const PSC_I = [5, 7, 10, 25, 35, 50, 70, 100];
+const PSC_I1 = [3, 5, 7, 10];
+const PSC_I2 = [15, 21, 25, 30, 35, 49, 50, 70, 100];
 
 const PXG_SIZES = [
-  { size: "21", t: 66, nMax: 6000, back: 3, mass: 2.1 },
-  { size: "31", t: 200, nMax: 5500, back: 3, mass: 4.8 },
-  { size: "41", t: 600, nMax: 4500, back: 3, mass: 9.2 },
-  { size: "51", t: 1500, nMax: 3500, back: 3, mass: 18 },
-  { size: "53", t: 4200, nMax: 3000, back: 3, mass: 38 },
+  { size: "21", t: 66, nMax: 6000, back: 3, mass: 2.1, frames: ["63", "71"] },
+  { size: "31", t: 200, nMax: 5500, back: 3, mass: 4.8, frames: ["71", "80"] },
+  { size: "41", t: 600, nMax: 4500, back: 3, mass: 9.2, frames: ["80", "100"] },
+  { size: "51", t: 1500, nMax: 3500, back: 3, mass: 18, frames: ["100"] },
+  { size: "53", t: 4200, nMax: 3000, back: 3, mass: 38, frames: ["100"] },
 ];
-const PXG_I = [4, 5, 8, 10, 16, 25, 40, 100];
+const PXG_I1 = [3, 4, 5, 7, 8, 10];
+const PXG_I2 = [12, 16, 20, 25, 32, 40, 50, 64, 100];
 
 const R_SIZES = [
-  { size: "R27", t: 130, nMax: 3600, mass: 10 },
-  { size: "R37", t: 200, nMax: 3600, mass: 14 },
-  { size: "R47", t: 400, nMax: 3600, mass: 22 },
-  { size: "R57", t: 450, nMax: 3600, mass: 32 },
-  { size: "R67", t: 600, nMax: 3600, mass: 46 },
-  { size: "R77", t: 820, nMax: 3000, mass: 68 },
-  { size: "R87", t: 1550, nMax: 3000, mass: 105 },
+  { size: "R27", t: 130, nMax: 3600, mass: 10, frames: ["63", "71"] },
+  { size: "R37", t: 200, nMax: 3600, mass: 14, frames: ["63", "71", "80"] },
+  { size: "R47", t: 400, nMax: 3600, mass: 22, frames: ["71", "80"] },
+  { size: "R57", t: 450, nMax: 3600, mass: 32, frames: ["71", "80", "100"] },
+  { size: "R67", t: 600, nMax: 3600, mass: 46, frames: ["80", "100"] },
+  { size: "R77", t: 820, nMax: 3000, mass: 68, frames: ["80", "100"] },
+  { size: "R87", t: 1550, nMax: 3000, mass: 105, frames: ["100"] },
 ];
-const R_I = [4.32, 7.6, 12.57, 20.87, 34.24, 54.33, 89.24];
+/** Representative SEW R two-/three-stage iN ladder. The full catalog is 3.21–289.74 with many exact values. */
+const R_I = [
+  4.29, 5.01, 5.89, 6.8, 8.04, 9.35, 10.83, 12.63, 14.73, 17.23, 20.09, 23.42, 27.27, 31.77, 37,
+  43.05, 50.2, 58.38, 68.09, 79.22, 92.7, 107.72, 125.57,
+];
 
 const K_SIZES = [
-  { size: "K37", t: 200, nMax: 3600, mass: 16 },
-  { size: "K47", t: 400, nMax: 3600, mass: 24 },
-  { size: "K57", t: 600, nMax: 3600, mass: 36 },
-  { size: "K67", t: 830, nMax: 3000, mass: 52 },
-  { size: "K77", t: 1500, nMax: 3000, mass: 78 },
-  { size: "K87", t: 2000, nMax: 2500, mass: 120 },
+  { size: "K37", t: 200, nMax: 3600, mass: 16, frames: ["63", "71", "80"] },
+  { size: "K47", t: 400, nMax: 3600, mass: 24, frames: ["71", "80"] },
+  { size: "K57", t: 600, nMax: 3600, mass: 36, frames: ["71", "80", "100"] },
+  { size: "K67", t: 830, nMax: 3000, mass: 52, frames: ["80", "100"] },
+  { size: "K77", t: 1500, nMax: 3000, mass: 78, frames: ["80", "100"] },
+  { size: "K87", t: 2000, nMax: 2500, mass: 120, frames: ["100"] },
 ];
-const K_I = [6.57, 10.27, 16.31, 25.56, 40.14, 63.09, 98.23];
+const K_I = [6.57, 8.23, 10.27, 12.86, 16.31, 20.48, 25.56, 32.18, 40.14, 50.24, 63.09, 78.73, 98.23, 122.5];
 
 function expand(
   kind: Gearbox["kind"],
   family: string,
-  sizes: { size: string; t: number; nMax: number; back?: number; mass: number }[],
+  sizes: { size: string; t: number; nMax: number; back?: number; mass: number; frames: string[] }[],
   ratios: number[],
   eta1: number,
   eta2: number,
@@ -131,10 +138,10 @@ function expand(
   const out: Gearbox[] = [];
   for (const s of sizes) {
     for (const ratio of ratios) {
-      const twoStage = ratio > 12;
+      const twoStage = ratio > 11.5;
       out.push({
         id: `${kind}-${s.size}-${ratio}`,
-        name: `${s.size} i=${ratio}`,
+        name: `${family.split(" ")[0]} ${s.size}  i=${ratio}`,
         kind,
         ratio,
         efficiency: twoStage ? eta2 : eta1,
@@ -145,6 +152,8 @@ function expand(
         massKg: s.mass * (twoStage ? 1.15 : 1),
         family,
         size: s.size,
+        motorFrames: s.frames,
+        stages: twoStage ? 2 : 1,
       });
     }
   }
@@ -165,13 +174,48 @@ export const GEARBOXES: Gearbox[] = [
     massKg: 0,
     family: "Direct",
     size: "—",
+    motorFrames: ["63", "71", "80", "100"],
+    stages: 0,
   },
   ...expand("psf", "PS.F planetary", PSF_SIZES, [...PSF_I1, ...PSF_I2], 0.97, 0.94),
-  ...expand("psc", "PS.C planetary", PSC_SIZES, PSC_I, 0.96, 0.93),
-  ...expand("pxg", "PxG P5 planetary", PXG_SIZES, PXG_I, 0.97, 0.94),
+  ...expand("psc", "PS.C planetary", PSC_SIZES, [...PSC_I1, ...PSC_I2], 0.96, 0.93),
+  ...expand("pxg", "PxG P5 planetary", PXG_SIZES, [...PXG_I1, ...PXG_I2], 0.97, 0.94),
   ...expand("helical", "R helical", R_SIZES, R_I, 0.96, 0.95),
   ...expand("bevel", "K helical-bevel", K_SIZES, K_I, 0.95, 0.94),
 ];
 
+export const RATIO_SETS: { family: string; one: number[]; two: number[]; note: string }[] = [
+  {
+    family: "PS.F planetary",
+    one: PSF_I1,
+    two: PSF_I2,
+    note: "Published PSF coaxial set. Same i ladder is used for sizes 121–921 in this tool.",
+  },
+  {
+    family: "PS.C planetary",
+    one: PSC_I1,
+    two: PSC_I2,
+    note: "Published PSC coaxial set (size 221 table).",
+  },
+  {
+    family: "PxG P5 planetary",
+    one: PXG_I1,
+    two: PXG_I2,
+    note: "Typical PxG P5 integer ratios. Exact iN depends on the configured stages.",
+  },
+  {
+    family: "R helical",
+    one: [],
+    two: R_I,
+    note: "SEW R two-/three-stage iN runs 3.21–289.74 with hundreds of exact values. This is a preferred-ratio ladder, not the full catalog.",
+  },
+  {
+    family: "K helical-bevel",
+    one: [],
+    two: K_I,
+    note: "Representative K iN ladder. The full catalog is denser.",
+  },
+];
+
 export const CATALOG_SOURCE =
-  "Standstill data from SEW-EURODRIVE published CM3C.. and CM3P.. tables. Gear-unit torque classes from PS.F / PS.C / PxG and standard R / K catalogs. Always confirm in SEW Workbench before release.";
+  "Representative CM3C / CM3P standstill figures and published PS.F / PS.C integer ratios. PxG, R and K use preferred iN ladders, not every catalog row. Flange pairing is by frame vs gear-unit size. Confirm the type code in official SEW catalogs and Workbench — this table is not licensed and is not complete.";

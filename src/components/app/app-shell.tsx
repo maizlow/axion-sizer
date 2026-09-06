@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ApplicationPicker } from "@/components/app/application-picker";
 import { CatalogTables } from "@/components/app/catalog-tables";
+import { DisclaimerBanner } from "@/components/app/disclaimer-banner";
 import { InputPanel } from "@/components/app/input-panel";
 import { ResultsPanel } from "@/components/app/results-panel";
 import { cn } from "@/lib/cn";
@@ -19,14 +20,15 @@ export function AppShell() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <DisclaimerBanner />
       <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur-sm">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="min-w-0">
             <div className="font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
-              Axion · SEW-EURODRIVE
+              Axion
             </div>
             <h1 className="truncate text-sm font-medium tracking-tight sm:text-base">
-              CM3C / CM3P drive dimensioning
+              Industrial motion drive sizing
             </h1>
           </div>
           <nav className="hidden gap-1 lg:flex">
@@ -93,8 +95,9 @@ export function AppShell() {
       </main>
 
       <footer className="mx-auto max-w-[1400px] px-4 pb-8 text-xs text-muted-foreground sm:px-6">
-        Sizing aid based on published SEW-EURODRIVE CM3C / CM3P and servo gear-unit tables. Confirm the
-        selection in official SEW documentation before release. SI units only.
+        Axion is an independent engineering calculator. Product names such as CM3C, CM3P and
+        Workbench belong to SEW-EURODRIVE. SI units only. Confirm every type code in official
+        documentation before release.
       </footer>
     </div>
   );
