@@ -1,4 +1,6 @@
 import { RotateCcw } from "lucide-react";
+import { ApplicationDiagram, FieldGlyph } from "@/components/app/field-diagrams";
+import { MotionCycleTable } from "@/components/app/motion-cycle-table";
 import { getApplication } from "@/lib/sizing/applications";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +11,7 @@ export function InputPanel() {
   const inputs = useSizingStore((s) => s.inputs);
   const setInput = useSizingStore((s) => s.setInput);
   const resetInputs = useSizingStore((s) => s.resetInputs);
+  const cycle = useSizingStore((s) => s.cycle);
   const app = getApplication(applicationId);
 
   return (
@@ -23,6 +26,8 @@ export function InputPanel() {
           Defaults
         </Button>
       </div>
+
+      <ApplicationDiagram id={app.id} />
 
       {app.selects.length > 0 && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -46,9 +51,12 @@ export function InputPanel() {
         </div>
       )}
 
+      <MotionCycleTable />
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {app.fields
           .filter((field) => {
+            if (cycle.enabled && (field.key === "accelTimeS" || field.key === "dutyCycle")) return false;
             if (!field.visibleWhen) return true;
             const cur = String(inputs[field.visibleWhen.key] ?? "");
             return field.visibleWhen.values.includes(cur);
@@ -59,24 +67,32 @@ export function InputPanel() {
             const shown = Number.isFinite(stored) ? stored : "";
             return (
               <label key={field.key} className="flex flex-col gap-1.5">
-                <span className="flex items-baseline justify-between gap-2">
-                  <span className="text-xs font-medium text-foreground">{field.label}</span>
-                  <span className="font-mono text-xs text-muted-foreground">{field.unit}</span>
+                <span className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-2 text-xs font-medium text-foreground">
+                    <FieldGlyph id={field.diagram} />
+                    {field.label}
+                  </span>
                 </span>
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  value={shown}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    if (v === "") {
-                      setInput(field.key, "");
-                      return;
-                    }
-                    const n = Number(v);
-                    if (Number.isFinite(n)) setInput(field.key, n);
-                  }}
-                />
+                <div className="relative">
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    className="pr-16"
+                    value={shown}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === "") {
+                        setInput(field.key, "");
+                        return;
+                      }
+                      const n = Number(v);
+                      if (Number.isFinite(n)) setInput(field.key, n);
+                    }}
+                  />
+                  <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center font-mono text-xs text-muted-foreground">
+                    {field.unit}
+                  </span>
+                </div>
                 <span className="text-xs leading-snug text-muted-foreground">{field.hint}</span>
               </label>
             );
