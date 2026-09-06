@@ -1,5 +1,6 @@
 import { CATALOG_SOURCE, GEARBOXES, MOTORS, RATIO_SETS } from "@/lib/sizing/catalog";
 import { formatNm, formatRpm } from "@/lib/sizing/match";
+import { useT } from "@/lib/i18n/locale";
 
 const UNIQUE_BOXES = GEARBOXES.filter((g) => g.kind !== "direct").reduce(
   (acc, g) => {
@@ -14,24 +15,25 @@ const UNIQUE_BOXES = GEARBOXES.filter((g) => g.kind !== "direct").reduce(
 ).list;
 
 export function CatalogTables() {
+  const t = useT();
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h2 className="text-base font-medium tracking-tight">Reference drive table</h2>
+        <h2 className="text-base font-medium tracking-tight">{t("catalog.title")}</h2>
 
         <p className="mt-1 text-sm text-muted-foreground">{CATALOG_SOURCE}</p>
       </div>
 
       <section>
         <h3 className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-          CM3C / CM3P synchronous servomotors
+          {t("catalog.motors")}
         </h3>
         <div className="overflow-x-auto rounded-[var(--radius-md)] border border-border">
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="bg-muted text-xs uppercase tracking-[0.08em] text-muted-foreground">
               <tr>
-                <th className="px-3 py-2 font-medium">Type</th>
-                <th className="px-3 py-2 font-medium">Series</th>
+                <th className="px-3 py-2 font-medium">{t("catalog.type")}</th>
+                <th className="px-3 py-2 font-medium">{t("catalog.series")}</th>
                 <th className="px-3 py-2 text-right font-medium">M0 N·m</th>
                 <th className="px-3 py-2 text-right font-medium">Mpk N·m</th>
                 <th className="px-3 py-2 text-right font-medium">n min⁻¹</th>
@@ -44,7 +46,7 @@ export function CatalogTables() {
                 <tr key={m.id} className="border-t border-border">
                   <td className="px-3 py-2 font-medium">{m.name}</td>
                   <td className="px-3 py-2 text-muted-foreground">
-                    {m.series === "CM3C" ? "Medium inertia" : "High dynamic"}
+                    {m.series === "CM3C" ? t("catalog.medJ") : t("catalog.hiDyn")}
                   </td>
                   <td className="px-3 py-2 text-right font-mono tabular-nums">{formatNm(m.contTorqueNm)}</td>
                   <td className="px-3 py-2 text-right font-mono tabular-nums">{formatNm(m.peakTorqueNm)}</td>
@@ -62,18 +64,18 @@ export function CatalogTables() {
 
       <section>
         <h3 className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-          Gear units — torque class by size
+          {t("catalog.gears")}
         </h3>
         <div className="overflow-x-auto rounded-[var(--radius-md)] border border-border">
           <table className="w-full min-w-[560px] text-left text-sm">
             <thead className="bg-muted text-xs uppercase tracking-[0.08em] text-muted-foreground">
               <tr>
-                <th className="px-3 py-2 font-medium">Family</th>
-                <th className="px-3 py-2 font-medium">Size</th>
+                <th className="px-3 py-2 font-medium">{t("catalog.family")}</th>
+                <th className="px-3 py-2 font-medium">{t("catalog.size")}</th>
                 <th className="px-3 py-2 text-right font-medium">T class N·m</th>
                 <th className="px-3 py-2 text-right font-medium">n1 max</th>
                 <th className="px-3 py-2 text-right font-medium">Backlash ′</th>
-                <th className="px-3 py-2 font-medium">CM3 frames</th>
+                <th className="px-3 py-2 font-medium">{t("catalog.frames")}</th>
               </tr>
             </thead>
             <tbody>
@@ -109,7 +111,7 @@ export function CatalogTables() {
 
       <section>
         <h3 className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-          Published and representative ratios
+          {t("catalog.ratios")}
         </h3>
         <div className="flex flex-col gap-3">
           {RATIO_SETS.map((set) => (

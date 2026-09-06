@@ -1,16 +1,18 @@
 import { useState } from "react";
 import { Info } from "lucide-react";
 import { FRICTION_REFS } from "@/lib/sizing/friction";
+import { useT } from "@/lib/i18n/locale";
 
 export function FrictionTooltip({ onPick }: { onPick: (mu: number) => void }) {
   const [open, setOpen] = useState(false);
+  const t = useT();
 
   return (
     <span className="relative inline-flex">
       <button
         type="button"
         className="rounded-full p-0.5 text-muted-foreground hover:text-foreground"
-        aria-label="Typical friction values"
+        aria-label={t("fric.title")}
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
         onBlur={(e) => {
@@ -25,7 +27,7 @@ export function FrictionTooltip({ onPick }: { onPick: (mu: number) => void }) {
           onMouseDown={(e) => e.preventDefault()}
         >
           <p className="px-1.5 pb-1.5 text-[11px] leading-snug text-muted-foreground">
-            Typical dry kinetic μ. Click a row to fill the field. Confirm against your surface and contamination.
+            {t("fric.intro")}
           </p>
           <ul className="max-h-64 overflow-y-auto">
             {FRICTION_REFS.map((row) => (

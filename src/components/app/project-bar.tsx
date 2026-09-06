@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { FolderOpen, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { buildProject, fileNameFor, parseProject } from "@/lib/sizing/project-file";
+import { useT } from "@/lib/i18n/locale";
 import { useSizingStore } from "@/store/sizing-store";
 
 export function ProjectBar() {
@@ -12,15 +13,16 @@ export function ProjectBar() {
   const projectName = useSizingStore((s) => s.projectName);
   const setProjectName = useSizingStore((s) => s.setProjectName);
   const loadProject = useSizingStore((s) => s.loadProject);
+  const t = useT();
 
   function openSave() {
-    setDraftName(projectName === "Untitled" ? "" : projectName);
+    setDraftName(projectName === "Untitled" || projectName === t("untitled") ? "" : projectName);
     setAsking(true);
     setStatus(null);
   }
 
   function confirmSave() {
-    const name = draftName.trim() || "Untitled";
+    const name = draftName.trim() || t("untitled");
     const snap = useSizingStore.getState();
     const project = buildProject(name, {
       applicationId: snap.applicationId,
@@ -39,7 +41,7 @@ export function ProjectBar() {
     a.click();
     URL.revokeObjectURL(url);
     setAsking(false);
-    setStatus(`Saved ${fileNameFor(name)}`);
+    setStatus(t("save.saved", { name: fileNameFor(name) }));
   }
 
   async function onFile(file: File | undefined) {
@@ -48,9 +50,9 @@ export function ProjectBar() {
       const text = await file.text();
       const project = parseProject(text);
       loadProject(project);
-      setStatus(`Loaded “${project.name}”`);
+      setStatus(t("save.loaded", { name: project.name }));
     } catch (err) {
-      setStatus(err instanceof Error ? err.message : "Could not read that file.");
+      setStatus(err instanceof Error ? err.message : t("save.unread"));
     }
   }
 
@@ -61,11 +63,11 @@ export function ProjectBar() {
       </span>
       <Button type="button" size="sm" variant="outline" onClick={openSave}>
         <Save className="size-3.5" />
-        Save
+        {t("save")}
       </Button>
       <Button type="button" size="sm" variant="outline" onClick={() => fileRef.current?.click()}>
         <FolderOpen className="size-3.5" />
-        Load
+        {t("load")}
       </Button>
       <input
         ref={fileRef}
@@ -80,15 +82,13 @@ export function ProjectBar() {
       {asking && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-background/70 px-4">
           <div className="w-full max-w-sm rounded-[var(--radius-lg)] border border-border bg-card p-4 shadow-lg">
-            <h2 className="text-sm font-medium">Name this sizing</h2>
-            <p className="mt-1 text-xs text-muted-foreground">
-              The name goes in the file and in the header so you can find it later.
-            </p>
+            <h2 className="text-sm font-medium">{t("save.title")}</h2>
+            <p className="mt-1 text-xs text-muted-foreground">{t("save.hint")}</p>
             <input
               autoFocus
               className="mt-3 h-10 w-full rounded-[var(--radius-sm)] border border-border bg-input px-3 text-sm"
               value={draftName}
-              placeholder="e.g. Line 3 lift — 250 kg"
+              placeholder={t("save.placeholder")}
               onChange={(e) => setDraftName(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") confirmSave();
@@ -97,10 +97,10 @@ export function ProjectBar() {
             />
             <div className="mt-3 flex justify-end gap-2">
               <Button type="button" size="sm" variant="ghost" onClick={() => setAsking(false)}>
-                Cancel
+                {t("save.cancel")}
               </Button>
               <Button type="button" size="sm" onClick={confirmSave}>
-                Download file
+                {t("save.download")}
               </Button>
             </div>
           </div>

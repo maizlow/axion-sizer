@@ -49,16 +49,12 @@ export function matchDrives(result: SizingResult, filters: MatchFilters): MatchS
       if (gb.ratedOutputNm > needPeak * 4) score -= 12;
 
       const reasons: string[] = [];
-      if (utilC > 0.9) reasons.push("Continuous utilization above 90% of M0 × i × η");
-      if (utilP > 0.9) reasons.push("Peak utilization above 90% of Mpk × i × η");
-      if (!inertiaOk) reasons.push(`Inertia ratio ${inertiaRatio.toFixed(1)} is high for ${motor.series}`);
-      reasons.push(
-        motor.kind === "cm3c"
-          ? "CM3C medium inertia — preferred with high reflected load"
-          : "CM3P high dynamic — preferred for short cycles and low load inertia",
-      );
-      if (outSpeed > needSpeed * 2.2) reasons.push("Large speed headroom — a higher ratio may fit better");
-      reasons.push(`Flange pairing: CM3 size ${motor.size} is listed for ${gb.family} ${gb.size}`);
+      if (utilC > 0.9) reasons.push("reason.utilC");
+      if (utilP > 0.9) reasons.push("reason.utilP");
+      if (!inertiaOk) reasons.push(`reason.inertia|${inertiaRatio.toFixed(1)}|${motor.series}`);
+      reasons.push(motor.kind === "cm3c" ? "reason.cm3c" : "reason.cm3p");
+      if (outSpeed > needSpeed * 2.2) reasons.push("reason.speed");
+      reasons.push(`reason.flange|${motor.size}|${gb.family}|${gb.size}`);
 
       out.push({
         motor,

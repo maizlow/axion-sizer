@@ -8,6 +8,7 @@ import {
   type OpPt,
 } from "@/lib/sizing/thermal";
 import type { MatchScore, MotionCycle, SizingResult } from "@/lib/sizing/types";
+import { useT } from "@/lib/i18n/locale";
 
 function polyline(pts: CurvePt[], x: (n: number) => number, y: (t: number) => number): string {
   return pts.map((p, i) => `${i === 0 ? "M" : "L"} ${x(p.n).toFixed(1)} ${y(p.t).toFixed(1)}`).join(" ");
@@ -151,58 +152,58 @@ export function ThermalCharts({
   const motorTMax = match.motor.peakTorqueNm * 1.15;
   const gbNMax = match.gearbox.maxInputRpm;
   const gbTMax = Math.max(match.gearbox.ratedOutputNm, result.peakTorqueNm) * 1.1;
+  const t = useT();
 
   return (
     <div className="mt-4 flex flex-col gap-2">
       <p className="text-xs text-muted-foreground">
-        Where this pair sits against its own limits. Lines are the drive’s capacity. Dots are what the machine
-        asks for. If a dot sits above a line, that demand is too high.
+        {t("thermal.intro")}
       </p>
       <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
         <li className="inline-flex items-center gap-1.5">
           <span className="inline-block h-0.5 w-3.5 bg-[#7ec8c3]" />
-          Short bursts the motor / gear can take
+          {t("thermal.burst")}
         </li>
         <li className="inline-flex items-center gap-1.5">
           <span className="inline-block h-0.5 w-3.5 bg-[#e07a5f]" />
-          What it can run all day without overheating
+          {t("thermal.allday")}
         </li>
         <li className="inline-flex items-center gap-1.5">
           <span className="size-2 rounded-full bg-[#e8a35a]" />
-          Average over the cycle (heats the winding)
+          {t("thermal.avg")}
         </li>
         <li className="inline-flex items-center gap-1.5">
           <span className="size-2 rounded-full bg-[#7ec8c3]" />
-          Hardest instant (accel / raise)
+          {t("thermal.hard")}
         </li>
         <li className="inline-flex items-center gap-1.5">
           <span className="size-2 rounded-full bg-[#b6a4de]" />
-          Holding still
+          {t("thermal.still")}
         </li>
       </ul>
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
         <ChartFrame
-          title={`Motor  ·  ${match.motor.name}`}
-          xLabel="Motor speed (1/min)"
-          yLabel="Torque at the motor (N·m)"
+          title={`${t("thermal.motor")}  ·  ${match.motor.name}`}
+          xLabel={t("thermal.nMot")}
+          yLabel={t("thermal.tMot")}
           nMax={motorNMax}
           tMax={motorTMax}
           curves={[
-            { pts: mPeak, color: "#7ec8c3", width: 1.8, label: "Burst" },
-            { pts: mS1, color: "#e07a5f", width: 1.6, label: "All-day" },
+            { pts: mPeak, color: "#7ec8c3", width: 1.8, label: t("thermal.burstLbl") },
+            { pts: mS1, color: "#e07a5f", width: 1.6, label: t("thermal.alldayLbl") },
           ]}
           points={ops.motor}
         />
         {match.gearbox.kind !== "direct" && (
           <ChartFrame
-            title={`Gear unit  ·  ${match.gearbox.name}`}
-            xLabel="Input speed (1/min)"
-            yLabel="Torque at the output shaft (N·m)"
+            title={`${t("thermal.gear")}  ·  ${match.gearbox.name}`}
+            xLabel={t("thermal.nIn")}
+            yLabel={t("thermal.tOut")}
             nMax={gbNMax}
             tMax={gbTMax}
             curves={[
-              { pts: gRated, color: "#7ec8c3", width: 1.6, label: "Rated" },
-              { pts: gTh, color: "#e07a5f", width: 1.6, label: "At speed" },
+              { pts: gRated, color: "#7ec8c3", width: 1.6, label: t("thermal.rated") },
+              { pts: gTh, color: "#e07a5f", width: 1.6, label: t("thermal.atSpeed") },
             ]}
             points={ops.gearbox}
           />

@@ -6,18 +6,16 @@ import { InputPanel } from "@/components/app/input-panel";
 import { ProjectBar } from "@/components/app/project-bar";
 import { ResultsPanel } from "@/components/app/results-panel";
 import { cn } from "@/lib/cn";
+import { useLocale, useT } from "@/lib/i18n/locale";
 
-const TABS = [
-  { id: "app", label: "Application" },
-  { id: "inputs", label: "Inputs" },
-  { id: "results", label: "Results" },
-  { id: "catalog", label: "Catalog" },
-] as const;
-
-type TabId = (typeof TABS)[number]["id"];
+const TAB_IDS = ["app", "inputs", "results", "catalog"] as const;
+type TabId = (typeof TAB_IDS)[number];
 
 export function AppShell() {
   const [tab, setTab] = useState<TabId>("app");
+  const t = useT();
+  const locale = useLocale((s) => s.locale);
+  const setLocale = useLocale((s) => s.setLocale);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -28,24 +26,43 @@ export function AppShell() {
             <div className="font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
               Axion
             </div>
-            <h1 className="truncate text-sm font-medium tracking-tight sm:text-base">
-              Industrial motion drive sizing
-            </h1>
+            <h1 className="truncate text-sm font-medium tracking-tight sm:text-base">{t("brand.tag")}</h1>
           </div>
-          <ProjectBar />
+          <div className="flex flex-wrap items-center gap-2">
+            <div
+              className="inline-flex rounded-[var(--radius-sm)] border border-border p-0.5"
+              role="group"
+              aria-label={t("lang.switch")}
+            >
+              {(["en", "sv"] as const).map((code) => (
+                <button
+                  key={code}
+                  type="button"
+                  onClick={() => setLocale(code)}
+                  className={cn(
+                    "h-8 min-w-8 rounded-[calc(var(--radius-sm)-2px)] px-2 font-mono text-xs",
+                    locale === code ? "bg-muted text-foreground" : "text-muted-foreground",
+                  )}
+                >
+                  {t(`lang.${code}`)}
+                </button>
+              ))}
+            </div>
+            <ProjectBar />
+          </div>
         </div>
         <nav className="mx-auto flex max-w-[1100px] gap-1 overflow-x-auto px-4 pb-3 sm:px-6">
-          {TABS.map((t) => (
+          {TAB_IDS.map((id) => (
             <button
-              key={t.id}
+              key={id}
               type="button"
-              onClick={() => setTab(t.id)}
+              onClick={() => setTab(id)}
               className={cn(
                 "h-10 shrink-0 rounded-[var(--radius-sm)] px-3 text-sm font-medium",
-                tab === t.id ? "bg-muted text-foreground" : "text-muted-foreground",
+                tab === id ? "bg-muted text-foreground" : "text-muted-foreground",
               )}
             >
-              {t.label}
+              {t(`tab.${id}`)}
             </button>
           ))}
         </nav>
@@ -71,9 +88,7 @@ export function AppShell() {
       </main>
 
       <footer className="mx-auto max-w-[1100px] px-4 pb-8 text-xs text-muted-foreground sm:px-6">
-        Axion is an independent engineering calculator. Product names such as CM3C, CM3P and
-        Workbench belong to SEW-EURODRIVE. SI units only. Confirm every type code in official
-        documentation before release.
+        {t("footer.legal")}
         <div className="mt-3 font-mono text-[10px] tracking-wide text-muted-foreground/50">
           {typeof __AXION_SHA__ === "string" && __AXION_SHA__ ? __AXION_SHA__.slice(0, 7) : "local"}
         </div>

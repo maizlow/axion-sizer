@@ -38,13 +38,23 @@ export function parseProject(raw: string): AxionProject {
   if (!data.applicationId || !data.inputs || !data.cycle) {
     throw new Error("The project file is missing machine data.");
   }
+  let applicationId = data.applicationId as string;
+  const inputs = { ...data.inputs };
+  if (applicationId === "vertical-lift") {
+    const mechanism = String(inputs.mechanism ?? "ball-screw");
+    inputs.orientation = "vertical";
+    inputs.inclineDeg = 90;
+    if (mechanism === "rack") applicationId = "rack-pinion";
+    else if (mechanism === "belt") applicationId = "gantry";
+    else applicationId = "ball-screw";
+  }
   return {
     kind: PROJECT_KIND,
     version: typeof data.version === "number" ? data.version : 1,
     name: typeof data.name === "string" && data.name.trim() ? data.name.trim() : "Untitled",
     savedAt: typeof data.savedAt === "string" ? data.savedAt : new Date().toISOString(),
-    applicationId: data.applicationId,
-    inputs: data.inputs,
+    applicationId: applicationId as ApplicationId,
+    inputs,
     cycle: {
       enabled: Boolean(data.cycle.enabled),
       segments: (data.cycle.segments ?? []).map((seg) => ({

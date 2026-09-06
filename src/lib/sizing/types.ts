@@ -4,7 +4,6 @@ export type ApplicationId =
   | "crane"
   | "winch"
   | "ball-screw"
-  | "vertical-lift"
   | "rack-pinion"
   | "rotary-table"
   | "mixer"

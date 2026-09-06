@@ -1,6 +1,8 @@
 import { CycleChart } from "@/components/app/cycle-chart";
+import { FieldTip } from "@/components/app/field-tip";
 import { Plus, Trash2 } from "lucide-react";
 import { ACCEL_LAW_OPTS, INCLINE_OPTS, appsWithCycle, cycleSummary } from "@/lib/sizing/cycle";
+import { useT } from "@/lib/i18n/locale";
 import type { AccelLaw, CycleSegment, InclineDir } from "@/lib/sizing/types";
 import { Button } from "@/components/ui/button";
 import { useSizingStore } from "@/store/sizing-store";
@@ -35,6 +37,7 @@ export function MotionCycleTable() {
   const updateSegment = useSizingStore((s) => s.updateSegment);
   const addSegment = useSizingStore((s) => s.addSegment);
   const removeSegment = useSizingStore((s) => s.removeSegment);
+  const t = useT();
 
   if (!appsWithCycle(applicationId)) return null;
 
@@ -44,12 +47,8 @@ export function MotionCycleTable() {
     <section className="flex flex-col gap-3">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h3 className="text-sm font-medium">Travel data</h3>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {cycle.enabled
-              ? "Each column is one phase of the move. Speed, accel time and duty come from here."
-              : "Off: type a single running speed below. On: size from a start–cruise–stop profile."}
-          </p>
+          <h3 className="text-sm font-medium">{t("cycle.title")}</h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">{cycle.enabled ? t("cycle.on") : t("cycle.off")}</p>
         </div>
         <label className="flex items-center gap-2 text-xs text-muted-foreground">
           <input
@@ -58,7 +57,7 @@ export function MotionCycleTable() {
             onChange={(e) => setCycleEnabled(e.target.checked)}
             className="size-3.5 accent-primary"
           />
-          Use travel table instead of a single speed
+          {t("cycle.use")}
         </label>
       </div>
 
@@ -70,16 +69,16 @@ export function MotionCycleTable() {
         <table className="min-w-full text-left text-sm">
           <thead className="bg-muted text-xs text-muted-foreground">
             <tr>
-              <th className="sticky left-0 z-10 bg-muted px-3 py-2 font-medium">Quantity</th>
+              <th className="sticky left-0 z-10 bg-muted px-3 py-2 font-medium">{t("cycle.quantity")}</th>
               {cycle.segments.map((seg, i) => (
                 <th key={seg.id} className="px-2 py-2 font-medium">
                   <div className="flex items-center justify-between gap-2">
-                    <span>Step {i + 1}</span>
+                    <span>{t("cycle.step", { n: i + 1 })}</span>
                     <button
                       type="button"
                       className="text-muted-foreground hover:text-danger"
                       onClick={() => removeSegment(seg.id)}
-                      aria-label={`Remove step ${i + 1}`}
+                      aria-label={t("cycle.remove", { n: i + 1 })}
                     >
                       <Trash2 className="size-3.5" />
                     </button>
@@ -92,7 +91,26 @@ export function MotionCycleTable() {
             {ROWS.map((row) => (
               <tr key={row.key} className="border-t border-border">
                 <th className="sticky left-0 bg-card px-3 py-1.5 text-xs font-medium text-foreground">
-                  {row.label}
+                  <span className="inline-flex items-center gap-1">
+                    {t(
+                      row.key === "inclineDir"
+                        ? "cycle.phase"
+                        : row.key === "accelLaw"
+                          ? "cycle.law"
+                          : row.key === "vStart"
+                            ? "cycle.vStart"
+                            : row.key === "vEnd"
+                              ? "cycle.vEnd"
+                              : row.key === "accel"
+                                ? "cycle.accel"
+                                : row.key === "time"
+                                  ? "cycle.time"
+                                  : row.key === "distanceMm"
+                                    ? "cycle.distance"
+                                    : "cycle.position",
+                    )}
+                    <FieldTip text={t(`help.${row.key}`)} label={row.label} />
+                  </span>
                   <span className="ml-1 font-mono font-normal text-muted-foreground">{row.unit}</span>
                 </th>
                 {cycle.segments.map((seg) => (
@@ -109,7 +127,7 @@ export function MotionCycleTable() {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Button type="button" size="sm" variant="outline" onClick={addSegment}>
           <Plus className="size-3.5" />
-          Add step
+          {t("cycle.add")}
         </Button>
         <p className="font-mono text-xs text-muted-foreground">
           T = {sum.periodS.toFixed(2)} s · travel {sum.travelMm.toFixed(0)} mm · v<sub>max</sub> {sum.peakV.toFixed(2)}{" "}
@@ -131,6 +149,7 @@ function Cell({
   row: (typeof ROWS)[number];
   onEdit: (id: string, patch: Partial<CycleSegment>, edited: keyof CycleSegment) => void;
 }) {
+  const t = useT();
   if (row.kind === "select" && row.key === "inclineDir") {
     return (
       <select
@@ -140,7 +159,13 @@ function Cell({
       >
         {INCLINE_OPTS.map((o) => (
           <option key={o.value} value={o.value}>
-            {o.label}
+            {t(
+              o.value === "accel"
+                ? "cycle.accelPhase"
+                : o.value === "decel"
+                  ? "cycle.decelPhase"
+                  : "cycle.holdPhase",
+            )}
           </option>
         ))}
       </select>
@@ -155,7 +180,7 @@ function Cell({
       >
         {ACCEL_LAW_OPTS.map((o) => (
           <option key={o.value} value={o.value}>
-            {o.label}
+            {t(o.value === "linear" ? "cycle.linear" : o.value === "sin2" ? "cycle.sin2" : "cycle.jerk")}
           </option>
         ))}
       </select>

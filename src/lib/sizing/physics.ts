@@ -180,7 +180,8 @@ function sizeHoistLike(
   cycle?: MotionCycle,
 ): SizingResult {
   const r = baseResult();
-  const m = toSi(appId, inputs, massKey);
+  const mPay = toSi(appId, inputs, massKey);
+  const mCw = Math.max(0, toSi(appId, inputs, "counterweightKg"));
   const v = toSi(appId, inputs, speedKey);
   const d = toSi(appId, inputs, diaKey);
   const falls = Math.max(1, fallsKey ? toSi(appId, inputs, fallsKey) : 1);
@@ -190,24 +191,26 @@ function sizeHoistLike(
   const duty = toSi(appId, inputs, "dutyCycle");
   const a = v / Math.max(tAcc, 0.05);
   const radius = d / 2;
-  const fSteady = (m * G) / falls;
-  const fPeak = (m * G + m * a) / falls;
-  const fLower = Math.max(0, (m * G - m * a) / falls);
+  const mUnbal = mPay - mCw;
+  const mInert = mPay + mCw;
+  const fSteady = (mUnbal * G) / falls;
+  const fPeak = (mUnbal * G + mInert * a) / falls;
+  const fLower = (mUnbal * G - mInert * a) / falls;
 
-  r.forceN = m * G;
+  r.forceN = mUnbal * G;
   r.outputTorqueNm = (fSteady * radius) / eta;
   r.peakTorqueNm = (fPeak * radius) / eta;
   r.loweringTorqueNm = (fLower * radius) / eta;
   r.holdingTorqueNm = r.outputTorqueNm;
   r.outputSpeedRpm = d > 0 ? ((v * falls) / (Math.PI * d)) * 60 : 0;
-  r.loadInertiaKgm2 = (m / (falls * falls)) * radius * radius;
+  r.loadInertiaKgm2 = (mInert / (falls * falls)) * radius * radius;
   r.accelTimeS = tAcc;
   r.dutyCycle = duty;
   r.safetyFactor = sf;
   r.rmsTorqueNm = rmsFromDuty(r.outputTorqueNm, r.peakTorqueNm, tAcc, r.outputSpeedRpm, duty);
   r.formulas = [
-    { name: "Hook force", expression: "F = m g", value: m * G, unit: "N" },
-    { name: "Force at drum", expression: "F_d = m g / falls", value: fSteady, unit: "N" },
+    { name: "Hook force", expression: "F = (m − m_cw) g", value: mUnbal * G, unit: "N" },
+    { name: "Force at drum", expression: "F_d = (m − m_cw) g / falls", value: fSteady, unit: "N" },
     { name: "Raise torque", expression: "T↑ = F_d · r / η", value: r.outputTorqueNm, unit: "N·m" },
     { name: "Peak raise", expression: "T_pk = ((m g + m a) / falls) · r / η", value: r.peakTorqueNm, unit: "N·m" },
     { name: "Lower torque", expression: "T↓ = ((m g − m a) / falls) · r / η", value: r.loweringTorqueNm, unit: "N·m" },
@@ -216,8 +219,9 @@ function sizeHoistLike(
     { name: "RMS torque", expression: "T_rms from duty cycle", value: r.rmsTorqueNm, unit: "N·m" },
   ];
   r.warnings.push("Specify a holding brake at least equal to holding torque × safety factor.");
+  if (mCw > 0) r.notes.push("Counterweight cuts gravity torque but adds inertia on raise and lower.");
   overlayCycle(r, cycle, {
-    massKg: m / falls,
+    massKg: mInert / falls,
     fGrav: fSteady,
     fFric: 0,
     toTorque: (f) => (f * radius) / eta,
@@ -364,15 +368,6 @@ function sizeRackOrGantry(
   return finish(r);
 }
 
-function sizeVerticalLift(appId: ApplicationId, inputs: Inputs, cycle?: MotionCycle): SizingResult {
-  const mechanism = String(inputs.mechanism ?? "ball-screw");
-  if (mechanism === "ball-screw") {
-    return sizeScrew(appId, { ...inputs, orientation: "vertical", inclineDeg: 90 }, cycle);
-  }
-  const diaKey = mechanism === "rack" ? "pinionDiaM" : "pulleyDiaM";
-  return sizeRackOrGantry(appId, { ...inputs, orientation: "vertical", inclineDeg: 90 }, diaKey, true, cycle);
-}
-
 function sizeRotary(appId: ApplicationId, inputs: Inputs): SizingResult {
   const r = baseResult();
   const j = toSi(appId, inputs, "tableInertia") + toSi(appId, inputs, "payloadInertia");
@@ -488,8 +483,6 @@ export function calculateSizing(appId: ApplicationId, inputs: Inputs, cycle?: Mo
       return sizeRackOrGantry(appId, inputs, "pinionDiaM", true, cycle);
     case "gantry":
       return sizeRackOrGantry(appId, inputs, "pulleyDiaM", false, cycle);
-    case "vertical-lift":
-      return sizeVerticalLift(appId, inputs, cycle);
     case "rotary-table":
       return sizeRotary(appId, inputs);
     case "mixer":

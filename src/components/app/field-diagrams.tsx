@@ -213,7 +213,7 @@ export function ApplicationDiagram({ id }: { id: ApplicationId }) {
             </text>
           </>
         )}
-        {(id === "ball-screw" || (id === "vertical-lift")) && (
+        {id === "ball-screw" && (
           <>
             <path d="M70 16 V72" stroke={mute} />
             <path d="M70 22 H200 M70 36 H188 M70 50 H176 M70 64 H164" stroke={ink} />

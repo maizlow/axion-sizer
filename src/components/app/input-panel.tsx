@@ -1,9 +1,11 @@
 import { RotateCcw } from "lucide-react";
 import { ApplicationDiagram, FieldGlyph } from "@/components/app/field-diagrams";
+import { FieldTip } from "@/components/app/field-tip";
 import { FrictionTooltip } from "@/components/app/friction-tooltip";
 import { MotionCycleTable } from "@/components/app/motion-cycle-table";
 import { getApplication } from "@/lib/sizing/applications";
 import { fieldCoveredByCycle } from "@/lib/sizing/cycle";
+import { useT } from "@/lib/i18n/locale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSizingStore } from "@/store/sizing-store";
@@ -15,17 +17,18 @@ export function InputPanel() {
   const resetInputs = useSizingStore((s) => s.resetInputs);
   const cycle = useSizingStore((s) => s.cycle);
   const app = getApplication(applicationId);
+  const t = useT();
 
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-base font-medium tracking-tight">{app.name}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{app.description}</p>
+          <h2 className="text-base font-medium tracking-tight">{t(`app.${app.id}.name`)}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t(`app.${app.id}.desc`)}</p>
         </div>
         <Button variant="ghost" size="sm" onClick={resetInputs} className="shrink-0">
           <RotateCcw className="size-3.5" />
-          Defaults
+          {t("defaults")}
         </Button>
       </div>
 
@@ -35,7 +38,10 @@ export function InputPanel() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {app.selects.map((sel) => (
             <label key={sel.key} className="flex flex-col gap-1.5">
-              <span className="text-xs font-medium text-foreground">{sel.label}</span>
+              <span className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                {t(`field.${sel.key}`)}
+                <FieldTip text={t(`help.${sel.key}`)} label={t(`field.${sel.key}`)} />
+              </span>
               <select
                 className="h-10 rounded-[var(--radius-sm)] border border-border bg-input px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={String(inputs[sel.key] ?? sel.defaultValue)}
@@ -43,7 +49,7 @@ export function InputPanel() {
               >
                 {sel.options.map((o) => (
                   <option key={o.value} value={o.value}>
-                    {o.label}
+                    {o.label.startsWith("S") ? t(`opt.${o.value}`) : t(`opt.${o.value}`)}
                   </option>
                 ))}
               </select>
@@ -72,7 +78,8 @@ export function InputPanel() {
                 <span className="flex items-center justify-between gap-2">
                   <span className="flex items-center gap-2 text-xs font-medium text-foreground">
                     <FieldGlyph id={field.diagram} />
-                    {field.label}
+                    {t(`field.${field.key}`)}
+                    <FieldTip text={t(`help.${field.key}`)} label={t(`field.${field.key}`)} />
                     {field.key === "mu" && <FrictionTooltip onPick={(mu) => setInput("mu", mu)} />}
                   </span>
                 </span>

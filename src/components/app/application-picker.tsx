@@ -14,6 +14,7 @@ import {
 import { APPLICATIONS } from "@/lib/sizing/applications";
 import type { ApplicationId } from "@/lib/sizing/types";
 import { cn } from "@/lib/cn";
+import { useT } from "@/lib/i18n/locale";
 import { useSizingStore } from "@/store/sizing-store";
 
 const ICONS: Record<ApplicationId, typeof Cog> = {
@@ -22,7 +23,6 @@ const ICONS: Record<ApplicationId, typeof Cog> = {
   crane: ArrowUpDown,
   winch: Sailboat,
   "ball-screw": MoveHorizontal,
-  "vertical-lift": ArrowUpDown,
   "rack-pinion": Gauge,
   gantry: Truck,
   "rotary-table": RotateCw,
@@ -41,6 +41,7 @@ const GROUPS = [
 export function ApplicationPicker() {
   const applicationId = useSizingStore((s) => s.applicationId);
   const setApplication = useSizingStore((s) => s.setApplication);
+  const t = useT();
 
   return (
     <div className="flex flex-col gap-6">
@@ -49,7 +50,7 @@ export function ApplicationPicker() {
         return (
           <section key={group.id}>
             <h2 className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-              {group.label}
+              {t(`group.${group.id}`)}
             </h2>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {items.map((app) => {
@@ -76,9 +77,9 @@ export function ApplicationPicker() {
                       <Icon className="size-4" strokeWidth={1.75} />
                     </span>
                     <span className="min-w-0">
-                      <span className="block text-sm font-medium leading-snug">{app.name}</span>
+                    <span className="block text-sm font-medium leading-snug">{t(`app.${app.id}.name`)}</span>
                       <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
-                        {app.description}
+                        {t(`app.${app.id}.desc`)}
                       </span>
                     </span>
                   </button>
