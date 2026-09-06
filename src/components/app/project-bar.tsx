@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { FolderOpen, Save, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { buildProject, fileNameFor, parseProject } from "@/lib/sizing/project-file";
+import { buildProject, fileNameFor, parseProject, withOpenUrl } from "@/lib/sizing/project-file";
 import { useT } from "@/lib/i18n/locale";
 import { useSizingStore } from "@/store/sizing-store";
 
@@ -35,7 +35,7 @@ export function ProjectBar({ compact }: { compact?: boolean }) {
 
   function confirmSave() {
     const name = draftName.trim() || t("untitled");
-    const project = snapshot(name);
+    const project = withOpenUrl(snapshot(name));
     setProjectName(name);
     const blob = new Blob([JSON.stringify(project, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -50,11 +50,11 @@ export function ProjectBar({ compact }: { compact?: boolean }) {
 
   async function shareProject() {
     const name = projectName.trim() || t("untitled");
-    const project = snapshot(name);
+    const project = withOpenUrl(snapshot(name));
     const json = JSON.stringify(project, null, 2);
     const filename = fileNameFor(name);
     const title = `Axion · ${name}`;
-    const text = t("share.text", { name });
+    const text = `${t("share.text", { name })}\n${project.openUrl ?? ""}`;
 
     const tryShare = async (data: ShareData) => {
       if (typeof navigator.share !== "function") return false;

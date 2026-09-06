@@ -11,6 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AxionRouteImport } from './routes/axion'
+import { Route as CaliperRouteImport } from './routes/caliper'
+import { Route as GraniaRouteImport } from './routes/grania'
+import { Route as LibrarianRouteImport } from './routes/librarian'
 import { Route as UnitsRouteImport } from './routes/units'
 
 const IndexRoute = IndexRouteImport.update({
@@ -23,6 +26,21 @@ const AxionRoute = AxionRouteImport.update({
   path: '/axion',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CaliperRoute = CaliperRouteImport.update({
+  id: '/caliper',
+  path: '/caliper',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GraniaRoute = GraniaRouteImport.update({
+  id: '/grania',
+  path: '/grania',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LibrarianRoute = LibrarianRouteImport.update({
+  id: '/librarian',
+  path: '/librarian',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UnitsRoute = UnitsRouteImport.update({
   id: '/units',
   path: '/units',
@@ -32,30 +50,49 @@ const UnitsRoute = UnitsRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/axion': typeof AxionRoute
+  '/caliper': typeof CaliperRoute
+  '/grania': typeof GraniaRoute
+  '/librarian': typeof LibrarianRoute
   '/units': typeof UnitsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/axion': typeof AxionRoute
+  '/caliper': typeof CaliperRoute
+  '/grania': typeof GraniaRoute
+  '/librarian': typeof LibrarianRoute
   '/units': typeof UnitsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/axion': typeof AxionRoute
+  '/caliper': typeof CaliperRoute
+  '/grania': typeof GraniaRoute
+  '/librarian': typeof LibrarianRoute
   '/units': typeof UnitsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/axion' | '/units'
+  fullPaths: '/' | '/axion' | '/caliper' | '/grania' | '/librarian' | '/units'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/axion' | '/units'
-  id: '__root__' | '/' | '/axion' | '/units'
+  to: '/' | '/axion' | '/caliper' | '/grania' | '/librarian' | '/units'
+  id:
+    | '__root__'
+    | '/'
+    | '/axion'
+    | '/caliper'
+    | '/grania'
+    | '/librarian'
+    | '/units'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AxionRoute: typeof AxionRoute
+  CaliperRoute: typeof CaliperRoute
+  GraniaRoute: typeof GraniaRoute
+  LibrarianRoute: typeof LibrarianRoute
   UnitsRoute: typeof UnitsRoute
 }
 
@@ -75,6 +112,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AxionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/caliper': {
+      id: '/caliper'
+      path: '/caliper'
+      fullPath: '/caliper'
+      preLoaderRoute: typeof CaliperRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/grania': {
+      id: '/grania'
+      path: '/grania'
+      fullPath: '/grania'
+      preLoaderRoute: typeof GraniaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/librarian': {
+      id: '/librarian'
+      path: '/librarian'
+      fullPath: '/librarian'
+      preLoaderRoute: typeof LibrarianRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/units': {
       id: '/units'
       path: '/units'
@@ -88,6 +146,9 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AxionRoute: AxionRoute,
+  CaliperRoute: CaliperRoute,
+  GraniaRoute: GraniaRoute,
+  LibrarianRoute: LibrarianRoute,
   UnitsRoute: UnitsRoute,
 }
 export const routeTree = rootRouteImport

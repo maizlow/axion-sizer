@@ -30,6 +30,36 @@ export const TOOLS: InternalTool[] = [
     ready: true,
     mark: "metron",
   },
+  {
+    id: "caliper",
+    path: "caliper",
+    name: "Caliper",
+    nameSv: "Caliper",
+    tag: "Drawing review from PDF — template only, not built yet.",
+    tagSv: "Granskning av ritnings-PDF — endast mall, inte byggt än.",
+    ready: true,
+    mark: "caliper",
+  },
+  {
+    id: "librarian",
+    path: "librarian",
+    name: "Librarian",
+    nameSv: "Librarian",
+    tag: "Internal knowledge desk — template only, not built yet.",
+    tagSv: "Intern kunskapsdisk — endast mall, inte byggt än.",
+    ready: true,
+    mark: "librarian",
+  },
+  {
+    id: "grania",
+    path: "grania",
+    name: "Grania",
+    nameSv: "Grania",
+    tag: "Sand blend, sieve curve and H-band.",
+    tagSv: "Sandblandning, siktkurva och H-band.",
+    ready: true,
+    mark: "grania",
+  },
 ];
 
 export function toolHref(path: string): string {

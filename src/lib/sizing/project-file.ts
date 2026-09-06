@@ -15,6 +15,7 @@ export interface AxionProject {
   motorKinds: MotorKind[];
   gearboxKinds: GearboxKind[];
   selectedMatchId: string | null;
+  openUrl?: string;
 }
 
 export function buildProject(
@@ -78,4 +79,51 @@ export function fileNameFor(name: string): string {
     .replace(/^-|-$/g, "")
     .slice(0, 48);
   return `${slug || "axion-project"}.axion.json`;
+}
+
+export function encodeProjectPayload(project: AxionProject): string {
+  const compact = JSON.stringify(project);
+  return btoa(unescape(encodeURIComponent(compact)))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+export function decodeProjectPayload(raw: string): AxionProject {
+  const pad = raw + "===".slice((raw.length + 3) % 4);
+  const json = decodeURIComponent(escape(atob(pad.replace(/-/g, "+").replace(/_/g, "/"))));
+  return parseProject(json);
+}
+
+export function projectHref(project: AxionProject): string {
+  const origin = typeof window !== "undefined" ? window.location.origin : "https://maizlow.github.io";
+  const root = (import.meta.env.BASE_URL || "/").endsWith("/")
+    ? import.meta.env.BASE_URL || "/"
+    : `${import.meta.env.BASE_URL || "/"}/`;
+  return `${origin}${root}axion#p=${encodeProjectPayload(project)}`;
+}
+
+export function withOpenUrl(project: AxionProject): AxionProject {
+  return { ...project, openUrl: projectHref(project) };
+}
+
+export function readProjectFromLocation(): AxionProject | null {
+  if (typeof window === "undefined") return null;
+  const hash = window.location.hash;
+  if (hash.startsWith("#p=")) {
+    try {
+      return decodeProjectPayload(hash.slice(3));
+    } catch {
+      return null;
+    }
+  }
+  const q = new URLSearchParams(window.location.search).get("p");
+  if (q) {
+    try {
+      return decodeProjectPayload(q);
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }

@@ -1,14 +1,20 @@
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { AppShell } from "@/components/app/app-shell";
+import { CaliperShell } from "@/components/caliper/caliper-shell";
+import { GraniaShell } from "@/components/grania/grania-shell";
+import { LibrarianShell } from "@/components/librarian/librarian-shell";
 import { ToolsHub } from "@/components/hub/tools-hub";
 import { UnitsShell } from "@/components/units/units-shell";
 import "@/styles.css";
 
-function pageId(): "hub" | "axion" | "units" {
+function pageId(): "hub" | "axion" | "units" | "caliper" | "librarian" | "grania" {
   const path = window.location.pathname.replace(/\/+$/, "");
   if (path.endsWith("/axion")) return "axion";
   if (path.endsWith("/units")) return "units";
+  if (path.endsWith("/caliper")) return "caliper";
+  if (path.endsWith("/librarian")) return "librarian";
+  if (path.endsWith("/grania")) return "grania";
   return "hub";
 }
 
@@ -21,6 +27,9 @@ function PagesApp() {
   }, []);
   if (page === "axion") return <AppShell />;
   if (page === "units") return <UnitsShell />;
+  if (page === "caliper") return <CaliperShell />;
+  if (page === "librarian") return <LibrarianShell />;
+  if (page === "grania") return <GraniaShell />;
   return <ToolsHub />;
 }
 

@@ -10,6 +10,7 @@ import { Moon, Sun } from "lucide-react";
 import { useLocale, useT } from "@/lib/i18n/locale";
 import { useTheme } from "@/lib/theme";
 import { loadDraft, saveDraft } from "@/lib/sizing/draft";
+import { readProjectFromLocation } from "@/lib/sizing/project-file";
 import { AxionMark } from "@/components/brand/axion-mark";
 import { hubHref } from "@/lib/tools";
 import { useSizingStore } from "@/store/sizing-store";
@@ -27,8 +28,14 @@ export function AppShell() {
   const loadProject = useSizingStore((s) => s.loadProject);
 
   useEffect(() => {
-    const draft = loadDraft();
-    if (draft) loadProject(draft);
+    const fromLink = readProjectFromLocation();
+    if (fromLink) {
+      loadProject(fromLink);
+      window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+    } else {
+      const draft = loadDraft();
+      if (draft) loadProject(draft);
+    }
     let timer = 0;
     const unsub = useSizingStore.subscribe((s) => {
       window.clearTimeout(timer);
