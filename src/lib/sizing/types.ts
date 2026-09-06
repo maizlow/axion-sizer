@@ -133,7 +133,7 @@ export interface MatchScore {
 }
 
 export type AccelLaw = "linear" | "sin2" | "jerk";
-export type InclineDir = "uphill" | "downhill" | "level";
+export type InclineDir = "accel" | "decel" | "hold";
 
 export interface CycleSegment {
   id: string;

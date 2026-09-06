@@ -1,3 +1,4 @@
+import { CycleChart } from "@/components/app/cycle-chart";
 import { Plus, Trash2 } from "lucide-react";
 import { ACCEL_LAW_OPTS, INCLINE_OPTS, appsWithCycle, cycleSummary } from "@/lib/sizing/cycle";
 import type { AccelLaw, CycleSegment, InclineDir } from "@/lib/sizing/types";
@@ -17,7 +18,7 @@ const ROWS: {
   kind: "select" | "number" | "derived";
   digits?: number;
 }[] = [
-  { key: "inclineDir", label: "Direction of inclination", unit: "—", kind: "select" },
+  { key: "inclineDir", label: "Motion phase", unit: "—", kind: "select" },
   { key: "accelLaw", label: "Type of acceleration", unit: "—", kind: "select" },
   { key: "vStart", label: "Start velocity", unit: "m/s", kind: "number", digits: 2 },
   { key: "vEnd", label: "End velocity", unit: "m/s", kind: "number", digits: 2 },
@@ -45,8 +46,9 @@ export function MotionCycleTable() {
         <div>
           <h3 className="text-sm font-medium">Travel data</h3>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Each column is one segment. Edit velocity, acceleration, time or distance — the others follow. Position is
-            cumulative.
+            {cycle.enabled
+              ? "Each column is one phase of the move. Speed, accel time and duty come from here."
+              : "Off: type a single running speed below. On: size from a start–cruise–stop profile."}
           </p>
         </div>
         <label className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -56,11 +58,15 @@ export function MotionCycleTable() {
             onChange={(e) => setCycleEnabled(e.target.checked)}
             className="size-3.5 accent-primary"
           />
-          Use cycle for RMS / peak
+          Use travel table instead of a single speed
         </label>
       </div>
 
-      <div className="overflow-x-auto rounded-[var(--radius-md)] border border-border">
+      {cycle.enabled && (
+        <>
+          <CycleChart cycle={cycle} />
+
+          <div className="overflow-x-auto rounded-[var(--radius-md)] border border-border">
         <table className="min-w-full text-left text-sm">
           <thead className="bg-muted text-xs text-muted-foreground">
             <tr>
@@ -109,7 +115,9 @@ export function MotionCycleTable() {
           T = {sum.periodS.toFixed(2)} s · travel {sum.travelMm.toFixed(0)} mm · v<sub>max</sub> {sum.peakV.toFixed(2)}{" "}
           m/s · a<sub>max</sub> {sum.peakA.toFixed(2)} m/s²
         </p>
-      </div>
+          </div>
+        </>
+      )}
     </section>
   );
 }

@@ -6,6 +6,7 @@ import type { GearboxKind, MotorKind } from "@/lib/sizing/types";
 import { cn } from "@/lib/cn";
 import { useSizingStore } from "@/store/sizing-store";
 import { Button } from "@/components/ui/button";
+import { ThermalCharts } from "@/components/app/thermal-charts";
 
 const MOTOR_OPTS: { id: MotorKind; label: string }[] = [
   { id: "cm3c", label: "CM3C" },
@@ -242,6 +243,7 @@ export function ResultsPanel() {
                           </li>
                         ))}
                       </ul>
+                      <ThermalCharts result={result} match={m} cycle={cycle} />
                     </div>
                   )}
                 </li>

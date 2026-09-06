@@ -11,6 +11,7 @@ interface SizingState {
   motorKinds: MotorKind[];
   gearboxKinds: GearboxKind[];
   selectedMatchId: string | null;
+  projectName: string;
   setApplication: (id: ApplicationId) => void;
   setInput: (key: string, value: number | string) => void;
   setCycleEnabled: (enabled: boolean) => void;
@@ -20,6 +21,16 @@ interface SizingState {
   toggleMotorKind: (k: MotorKind) => void;
   toggleGearboxKind: (k: GearboxKind) => void;
   setSelectedMatch: (id: string | null) => void;
+  setProjectName: (name: string) => void;
+  loadProject: (data: {
+    applicationId: ApplicationId;
+    inputs: Inputs;
+    cycle: MotionCycle;
+    motorKinds: MotorKind[];
+    gearboxKinds: GearboxKind[];
+    selectedMatchId: string | null;
+    name: string;
+  }) => void;
   resetInputs: () => void;
 }
 
@@ -30,6 +41,7 @@ export const useSizingStore = create<SizingState>()((set, get) => ({
   motorKinds: ["cm3c", "cm3p"],
   gearboxKinds: ["psf", "psc", "pxg", "helical", "bevel", "direct"],
   selectedMatchId: null,
+  projectName: "Untitled",
   setApplication: (id) => {
     const inputs = defaultInputs(id);
     set({ applicationId: id, inputs, cycle: defaultCycle(id, inputs), selectedMatchId: null });
@@ -72,6 +84,17 @@ export const useSizingStore = create<SizingState>()((set, get) => ({
     set({ gearboxKinds: next.length ? next : cur });
   },
   setSelectedMatch: (id) => set({ selectedMatchId: id }),
+  setProjectName: (name) => set({ projectName: name }),
+  loadProject: (data) =>
+    set({
+      applicationId: data.applicationId,
+      inputs: data.inputs,
+      cycle: data.cycle,
+      motorKinds: data.motorKinds.length ? data.motorKinds : ["cm3c"],
+      gearboxKinds: data.gearboxKinds.length ? data.gearboxKinds : ["psf"],
+      selectedMatchId: data.selectedMatchId,
+      projectName: data.name,
+    }),
   resetInputs: () => {
     const id = get().applicationId;
     const inputs = defaultInputs(id);

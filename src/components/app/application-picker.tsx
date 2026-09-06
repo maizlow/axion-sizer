@@ -22,6 +22,7 @@ const ICONS: Record<ApplicationId, typeof Cog> = {
   crane: ArrowUpDown,
   winch: Sailboat,
   "ball-screw": MoveHorizontal,
+  "vertical-lift": ArrowUpDown,
   "rack-pinion": Gauge,
   gantry: Truck,
   "rotary-table": RotateCw,
@@ -60,7 +61,7 @@ export function ApplicationPicker() {
                     type="button"
                     onClick={() => setApplication(app.id)}
                     className={cn(
-                      "flex min-h-11 items-start gap-3 rounded-[var(--radius-md)] border px-3 py-3 text-left transition-colors duration-[var(--motion-quick)] ease-[var(--ease-out)]",
+                      "flex min-h-11 items-start gap-3 rounded-[var(--radius-md)] border px-3 py-3 text-left transition-colors",
                       active
                         ? "border-primary/40 bg-muted text-foreground"
                         : "border-border bg-card text-foreground hover:border-primary/25 hover:bg-muted/60",

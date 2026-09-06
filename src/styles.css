@@ -3,7 +3,6 @@
 @theme {
   --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
-
   --color-bg: #0c0e11;
   --color-background: #0c0e11;
   --color-foreground: #e6e8eb;
@@ -24,17 +23,11 @@
   --color-ok: #7d9b74;
   --color-warn: #c4a15a;
   --color-danger: #c2756b;
-
   --radius-xs: 4px;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
-  --radius-xl: 24px;
   --radius: 12px;
-
-  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  --motion-quick: 150ms;
-  --motion-fast: 250ms;
 }
 
 @layer base {
@@ -42,34 +35,18 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-
   body {
     background: var(--color-bg);
     color: var(--color-foreground);
     font-family: var(--font-sans);
   }
-
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
-
   h1,
   h2,
   h3 {
     text-wrap: balance;
-  }
-
-  p {
-    text-wrap: pretty;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
   }
 }

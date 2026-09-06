@@ -1,7 +1,9 @@
 import { RotateCcw } from "lucide-react";
 import { ApplicationDiagram, FieldGlyph } from "@/components/app/field-diagrams";
+import { FrictionTooltip } from "@/components/app/friction-tooltip";
 import { MotionCycleTable } from "@/components/app/motion-cycle-table";
 import { getApplication } from "@/lib/sizing/applications";
+import { fieldCoveredByCycle } from "@/lib/sizing/cycle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSizingStore } from "@/store/sizing-store";
@@ -56,7 +58,7 @@ export function InputPanel() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {app.fields
           .filter((field) => {
-            if (cycle.enabled && (field.key === "accelTimeS" || field.key === "dutyCycle")) return false;
+            if (fieldCoveredByCycle(applicationId, field.key, cycle.enabled)) return false;
             if (!field.visibleWhen) return true;
             const cur = String(inputs[field.visibleWhen.key] ?? "");
             return field.visibleWhen.values.includes(cur);
@@ -71,6 +73,7 @@ export function InputPanel() {
                   <span className="flex items-center gap-2 text-xs font-medium text-foreground">
                     <FieldGlyph id={field.diagram} />
                     {field.label}
+                    {field.key === "mu" && <FrictionTooltip onPick={(mu) => setInput("mu", mu)} />}
                   </span>
                 </span>
                 <div className="relative">

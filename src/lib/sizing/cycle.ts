@@ -2,10 +2,16 @@ import type { AccelLaw, ApplicationId, CycleSegment, InclineDir, Inputs, MotionC
 import { getApplication } from "./applications";
 
 export const INCLINE_OPTS: { value: InclineDir; label: string }[] = [
-  { value: "uphill", label: "Uphill" },
-  { value: "downhill", label: "Downhill" },
-  { value: "level", label: "Level" },
+  { value: "accel", label: "Acceleration phase" },
+  { value: "decel", label: "Deceleration phase" },
+  { value: "hold", label: "Hold or cruise" },
 ];
+
+export function normalizePhase(raw: string | undefined): InclineDir {
+  if (raw === "decel" || raw === "downhill") return "decel";
+  if (raw === "hold" || raw === "level") return "hold";
+  return "accel";
+}
 
 export const ACCEL_LAW_OPTS: { value: AccelLaw; label: string }[] = [
   { value: "linear", label: "Linear" },
@@ -16,6 +22,22 @@ export const ACCEL_LAW_OPTS: { value: AccelLaw; label: string }[] = [
 export function appsWithCycle(id: ApplicationId): boolean {
   return !["mixer", "fan", "pump"].includes(id);
 }
+
+/** Fields the travel table already defines when the cycle is on. */
+export const CYCLE_COVERED_KEYS = [
+  "speedMps",
+  "hookSpeedMps",
+  "lineSpeedMps",
+  "speedRpm",
+  "accelTimeS",
+  "dutyCycle",
+] as const;
+
+export function fieldCoveredByCycle(appId: ApplicationId, fieldKey: string, cycleOn: boolean): boolean {
+  if (!cycleOn || !appsWithCycle(appId)) return false;
+  return (CYCLE_COVERED_KEYS as readonly string[]).includes(fieldKey);
+}
+
 
 function sid(): string {
   return `seg-${Math.random().toString(36).slice(2, 8)}`;
@@ -45,7 +67,7 @@ export function emptySegment(prev?: CycleSegment): CycleSegment {
   const pos = prev?.positionMm ?? 0;
   return {
     id: sid(),
-    inclineDir: prev?.inclineDir ?? "uphill",
+    inclineDir: prev?.inclineDir ?? "accel",
     accelLaw: prev?.accelLaw ?? "linear",
     vStart: v0,
     vEnd: v0,
@@ -100,7 +122,7 @@ export function defaultCycle(appId: ApplicationId, inputs: Inputs): MotionCycle 
   const t = accelTimeSi(appId, inputs);
   const a = v / t;
   const s = 0.5 * v * t * 1000;
-  const dir: InclineDir = appId === "crane" || appId === "winch" || appId === "vertical-lift" ? "uphill" : "uphill";
+  const dir: InclineDir = "accel";
   const a1 = fillKinematics(
     {
       id: sid(),
@@ -118,7 +140,7 @@ export function defaultCycle(appId: ApplicationId, inputs: Inputs): MotionCycle 
   const a2 = fillKinematics(
     {
       id: sid(),
-      inclineDir: dir,
+      inclineDir: "decel",
       accelLaw: "linear",
       vStart: v,
       vEnd: 0,
@@ -132,7 +154,7 @@ export function defaultCycle(appId: ApplicationId, inputs: Inputs): MotionCycle 
   const dwell = fillKinematics(
     {
       id: sid(),
-      inclineDir: "level",
+      inclineDir: "hold",
       accelLaw: "linear",
       vStart: 0,
       vEnd: 0,
@@ -168,4 +190,65 @@ export function cycleSummary(cycle: MotionCycle) {
     travelMm,
     endPosMm: segs.length ? segs[segs.length - 1].positionMm : 0,
   };
+}
+
+export function sampleSegment(seg: CycleSegment, localT: number): { v: number; a: number; sMm: number } {
+  const T = Math.max(seg.time, 1e-9);
+  const u = Math.min(1, Math.max(0, localT / T));
+  const v0 = seg.vStart;
+  const v1 = seg.vEnd;
+  if (seg.accelLaw === "sin2") {
+    const w = 0.5 - 0.5 * Math.cos(Math.PI * u);
+    const v = v0 + (v1 - v0) * w;
+    const a = ((v1 - v0) * 0.5 * Math.PI * Math.sin(Math.PI * u)) / T;
+    const sMm = (v0 * localT + (v1 - v0) * (localT / 2 - (T / (2 * Math.PI)) * Math.sin(Math.PI * u))) * 1000;
+    return { v, a, sMm };
+  }
+  if (seg.accelLaw === "jerk") {
+    const j = u < 0.5 ? 2 * u * u : 1 - 2 * (1 - u) * (1 - u);
+    const v = v0 + (v1 - v0) * j;
+    const aMean = (v1 - v0) / T;
+    const a = u < 0.5 ? aMean * 4 * u : aMean * 4 * (1 - u);
+    const sMm = ((v0 + v) / 2) * localT * 1000;
+    return { v, a, sMm };
+  }
+  const a = (v1 - v0) / T;
+  const v = v0 + a * localT;
+  const sMm = (v0 * localT + 0.5 * a * localT * localT) * 1000;
+  return { v, a, sMm };
+}
+
+export interface ProfileSample {
+  t: number;
+  v: number;
+  a: number;
+  sMm: number;
+  segIndex: number;
+}
+
+export function sampleCycle(cycle: MotionCycle, pointsPerSeg = 24): ProfileSample[] {
+  const out: ProfileSample[] = [];
+  let t0 = 0;
+  let s0 = 0;
+  cycle.segments.forEach((seg, i) => {
+    const n = Math.max(4, pointsPerSeg);
+    for (let k = 0; k <= n; k++) {
+      if (k === 0 && i > 0) continue;
+      const local = (k / n) * Math.max(seg.time, 0);
+      const p = sampleSegment(seg, local);
+      out.push({ t: t0 + local, v: p.v, a: p.a, sMm: s0 + p.sMm, segIndex: i });
+    }
+    t0 += Math.max(seg.time, 0);
+    s0 += seg.distanceMm;
+  });
+  return out;
+}
+
+export function segmentBounds(cycle: MotionCycle): { i: number; t0: number; t1: number }[] {
+  let t = 0;
+  return cycle.segments.map((seg, i) => {
+    const t0 = t;
+    t += Math.max(seg.time, 0);
+    return { i, t0, t1: t };
+  });
 }
