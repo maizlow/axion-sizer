@@ -31,18 +31,43 @@ jobs:
       - name: Collect static site
         run: |
           mkdir -p _site
-          if [ -d .vercel/output/static ]; then
+          if [ -d .output/public ]; then
+            cp -a .output/public/. _site/
+          elif [ -d .vercel/output/static ]; then
             cp -a .vercel/output/static/. _site/
           elif [ -d dist ]; then
             cp -a dist/. _site/
           else
             echo "No static build output found" >&2
+            find . -maxdepth 3 -type d | head -80
             exit 1
           fi
-          # SPA fallback for client routes
-          if [ -f _site/index.html ]; then
-            cp _site/index.html _site/404.html
-          fi
+          find _site -maxdepth 3 | head -80
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("_site")
+          index = root / "index.html"
+          if not index.exists():
+              assets = root / "assets"
+              css = next(assets.glob("*.css"), None) if assets.exists() else None
+              js = next(assets.glob("index-*.js"), None) if assets.exists() else None
+              routes = next(assets.glob("routes-*.js"), None) if assets.exists() else None
+              if js is None:
+                  raise SystemExit("No client bundle in _site/assets")
+              links = f'<link rel="stylesheet" href="assets/{css.name}"/>' if css else ""
+              extra = f'<script type="module" src="assets/{routes.name}"></script>' if routes else ""
+              index.write_text(
+                  "<!doctype html><html lang='en'><head><meta charset='utf-8'/>"
+                  "<meta name='viewport' content='width=device-width, initial-scale=1'/>"
+                  "<title>Axion</title><base href='/axion-sizer/'/>"
+                  f"{links}</head><body><div id='root'></div>{extra}"
+                  f"<script type='module' src='assets/{js.name}'></script></body></html>\n",
+                  encoding="utf-8",
+              )
+          (root / "404.html").write_text(index.read_text(encoding="utf-8"), encoding="utf-8")
+          print("index bytes", index.stat().st_size)
+          PY
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
