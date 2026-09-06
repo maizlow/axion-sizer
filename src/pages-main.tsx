@@ -1,14 +1,9 @@
-import { StrictMode, Suspense, lazy, useEffect, useState } from "react";
+import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { AppShell } from "@/components/app/app-shell";
 import { ToolsHub } from "@/components/hub/tools-hub";
+import { UnitsShell } from "@/components/units/units-shell";
 import "@/styles.css";
-
-const AppShell = lazy(() =>
-  import("@/components/app/app-shell").then((m) => ({ default: m.AppShell })),
-);
-const UnitsShell = lazy(() =>
-  import("@/components/units/units-shell").then((m) => ({ default: m.UnitsShell })),
-);
 
 function pageId(): "hub" | "axion" | "units" {
   const path = window.location.pathname.replace(/\/+$/, "");
@@ -24,11 +19,9 @@ function PagesApp() {
     window.addEventListener("popstate", sync);
     return () => window.removeEventListener("popstate", sync);
   }, []);
-  return (
-    <Suspense fallback={null}>
-      {page === "axion" ? <AppShell /> : page === "units" ? <UnitsShell /> : <ToolsHub />}
-    </Suspense>
-  );
+  if (page === "axion") return <AppShell />;
+  if (page === "units") return <UnitsShell />;
+  return <ToolsHub />;
 }
 
 const root = document.getElementById("root");
