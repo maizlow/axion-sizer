@@ -11,6 +11,8 @@ interface SizingState {
   motorKinds: MotorKind[];
   gearboxKinds: GearboxKind[];
   selectedMatchId: string | null;
+  inverterId: string | null;
+  hoursPerDay: number;
   projectName: string;
   setApplication: (id: ApplicationId) => void;
   setInput: (key: string, value: number | string) => void;
@@ -18,9 +20,12 @@ interface SizingState {
   updateSegment: (id: string, patch: Partial<CycleSegment>, edited: keyof CycleSegment) => void;
   addSegment: () => void;
   removeSegment: (id: string) => void;
+  resetCyclePayload: () => void;
   toggleMotorKind: (k: MotorKind) => void;
   toggleGearboxKind: (k: GearboxKind) => void;
   setSelectedMatch: (id: string | null) => void;
+  setInverterId: (id: string | null) => void;
+  setHoursPerDay: (hours: number) => void;
   setProjectName: (name: string) => void;
   loadProject: (data: {
     applicationId: ApplicationId;
@@ -30,6 +35,8 @@ interface SizingState {
     gearboxKinds: GearboxKind[];
     selectedMatchId: string | null;
     name: string;
+    inverterId?: string | null;
+    hoursPerDay?: number;
   }) => void;
   resetInputs: () => void;
 }
@@ -41,6 +48,8 @@ export const useSizingStore = create<SizingState>()((set, get) => ({
   motorKinds: ["cm3c", "cm3p"],
   gearboxKinds: ["psf", "psc", "pxg", "helical", "bevel", "direct"],
   selectedMatchId: null,
+  inverterId: null,
+  hoursPerDay: 16,
   projectName: "Untitled",
   setApplication: (id) => {
     const inputs = defaultInputs(id);
@@ -73,6 +82,10 @@ export const useSizingStore = create<SizingState>()((set, get) => ({
       },
     });
   },
+  resetCyclePayload: () => {
+    const segs = get().cycle.segments.map((s) => ({ ...s, payloadKg: 0 }));
+    set({ cycle: { ...get().cycle, segments: segs } });
+  },
   toggleMotorKind: (k) => {
     const cur = get().motorKinds;
     const next = cur.includes(k) ? cur.filter((x) => x !== k) : [...cur, k];
@@ -84,6 +97,8 @@ export const useSizingStore = create<SizingState>()((set, get) => ({
     set({ gearboxKinds: next.length ? next : cur });
   },
   setSelectedMatch: (id) => set({ selectedMatchId: id }),
+  setInverterId: (id) => set({ inverterId: id }),
+  setHoursPerDay: (hours) => set({ hoursPerDay: hours }),
   setProjectName: (name) => set({ projectName: name }),
   loadProject: (data) =>
     set({
@@ -94,6 +109,8 @@ export const useSizingStore = create<SizingState>()((set, get) => ({
       gearboxKinds: data.gearboxKinds.length ? data.gearboxKinds : ["psf"],
       selectedMatchId: data.selectedMatchId,
       projectName: data.name,
+      inverterId: data.inverterId ?? null,
+      hoursPerDay: data.hoursPerDay ?? 16,
     }),
   resetInputs: () => {
     const id = get().applicationId;

@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { AlertTriangle, Check } from "lucide-react";
 import { calculateSizing } from "@/lib/sizing/physics";
 import { formatKw, formatNm, formatRpm, matchDrives } from "@/lib/sizing/match";
+import { INVERTERS } from "@/lib/sizing/catalog";
 import type { GearboxKind, MotorKind } from "@/lib/sizing/types";
 import { cn } from "@/lib/cn";
 import { useSizingStore } from "@/store/sizing-store";
@@ -59,13 +60,17 @@ export function ResultsPanel() {
   const toggleGearboxKind = useSizingStore((s) => s.toggleGearboxKind);
   const selectedMatchId = useSizingStore((s) => s.selectedMatchId);
   const setSelectedMatch = useSizingStore((s) => s.setSelectedMatch);
+  const inverterId = useSizingStore((s) => s.inverterId);
+  const setInverterId = useSizingStore((s) => s.setInverterId);
+  const hoursPerDay = useSizingStore((s) => s.hoursPerDay);
+  const setHoursPerDay = useSizingStore((s) => s.setHoursPerDay);
 
   const cycle = useSizingStore((s) => s.cycle);
   const t = useT();
   const result = useMemo(() => calculateSizing(applicationId, inputs, cycle), [applicationId, inputs, cycle]);
   const matches = useMemo(
-    () => matchDrives(result, { motorKinds, gearboxKinds }),
-    [result, motorKinds, gearboxKinds],
+    () => matchDrives(result, { motorKinds, gearboxKinds, hoursPerDay, cycle }, inverterId),
+    [result, motorKinds, gearboxKinds, inverterId, hoursPerDay, cycle],
   );
 
   const lifting = result.holdingTorqueNm > 0 || result.loweringTorqueNm > 0;
@@ -111,24 +116,33 @@ export function ResultsPanel() {
         <h3 className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
           {t("results.calc")}
         </h3>
-        <div className="overflow-hidden rounded-[var(--radius-md)] border border-border">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-muted text-xs uppercase tracking-[0.1em] text-muted-foreground">
+        <div className="overflow-hidden rounded-[var(--radius-md)] border border-border bg-[color-mix(in_oklab,var(--color-card)_88%,#1a1814)]">
+          <table className="w-full text-left">
+            <thead className="border-b border-border text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
               <tr>
-                <th className="px-3 py-2 font-medium">{t("results.quantity")}</th>
-                <th className="hidden px-3 py-2 font-medium sm:table-cell">{t("results.expr")}</th>
-                <th className="px-3 py-2 text-right font-medium">{t("results.value")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("results.quantity")}</th>
+                <th className="hidden px-4 py-2.5 font-medium sm:table-cell">{t("results.expr")}</th>
+                <th className="px-4 py-2.5 text-right font-medium">{t("results.value")}</th>
               </tr>
             </thead>
             <tbody>
               {result.formulas.map((f) => (
-                <tr key={f.name} className="border-t border-border">
-                  <td className="px-3 py-2">{f.name}</td>
-                  <td className="hidden px-3 py-2 font-mono text-xs text-muted-foreground sm:table-cell">
-                    {f.expression}
+                <tr key={f.name} className="border-t border-border/80">
+                  <td className="px-4 py-2.5 font-[family-name:var(--font-math)] text-[15px] italic leading-snug text-foreground/90">
+                    {f.name}
                   </td>
-                  <td className="px-3 py-2 text-right font-mono tabular-nums">
-                    {formatNm(f.value)} {f.unit}
+                  <td className="hidden px-4 py-2.5 sm:table-cell">
+                    <span className="font-[family-name:var(--font-math)] text-[17px] italic tracking-wide text-foreground">
+                      {prettyMath(f.expression)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <span className="font-[family-name:var(--font-math)] text-[16px] tabular-nums italic">
+                      {formatNm(f.value)}
+                    </span>
+                    <span className="ml-1.5 font-[family-name:var(--font-math)] text-[13px] italic text-muted-foreground">
+                      {prettyUnit(f.unit)}
+                    </span>
                   </td>
                 </tr>
               ))}
@@ -168,6 +182,20 @@ export function ResultsPanel() {
               {o.labelKey ? t(o.labelKey) : o.label}
             </Button>
           ))}
+          <span className="mx-1 h-8 w-px bg-border" />
+          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+            {t("results.hours")}
+            <select
+              className="h-8 rounded-[var(--radius-sm)] border border-border bg-input px-2 text-sm text-foreground"
+              value={hoursPerDay}
+              onChange={(e) => setHoursPerDay(Number(e.target.value))}
+            >
+              <option value={2}>≤ 2 h</option>
+              <option value={8}>2–8 h</option>
+              <option value={16}>8–16 h</option>
+              <option value={24}>16–24 h</option>
+            </select>
+          </label>
         </div>
 
         {matches.length === 0 ? (
@@ -197,10 +225,13 @@ export function ResultsPanel() {
                         <span className="text-sm font-medium">{m.motor.name}</span>
                         <span className="text-muted-foreground">+</span>
                         <span className="text-sm font-medium">{m.gearbox.name}</span>
+                        <span className="text-muted-foreground">+</span>
+                        <span className="text-sm font-medium">{m.inverter.name}</span>
                       </div>
                       <div className="mt-1 text-xs text-muted-foreground">
-                        {m.motor.series} · {m.gearbox.family} · M0 {m.motor.contTorqueNm} N·m ·{" "}
-                        {m.motor.ratedSpeedRpm} min⁻¹
+                        {m.motor.series} · {m.gearbox.family} · {t("results.class")} {m.loadClass} · {t("results.fbReq")}{" "}
+                        {m.serviceFactorFb.toFixed(2)} · {t("results.fbAvail")} {m.serviceFactorAvail.toFixed(2)}
+                        {m.serviceFactorAvail >= 1.5 ? " ≥ 1.5" : " < 1.5"}
                       </div>
                     </div>
                     <div className="sm:w-48">
@@ -230,6 +261,25 @@ export function ResultsPanel() {
                       <div className="mt-3">
                         <UtilBar value={m.utilizationPeak} label={t("results.peakUtil")} />
                       </div>
+                      <label className="mt-3 flex flex-col gap-1.5 text-xs">
+                        <span className="text-muted-foreground">{t("results.drive")}</span>
+                        <select
+                          className="h-9 rounded-[var(--radius-sm)] border border-border bg-input px-2 text-sm text-foreground"
+                          value={inverterId ?? ""}
+                          onChange={(e) => setInverterId(e.target.value || null)}
+                        >
+                          <option value="">{t("results.driveAuto")}</option>
+                          {INVERTERS.map((d) => (
+                            <option key={d.id} value={d.id}>
+                              {d.name} · {d.ratedPowerKw} kW · {d.ratedCurrentA} A
+                            </option>
+                          ))}
+                        </select>
+                        <span className="font-mono text-[11px] text-muted-foreground">
+                          {t("results.driveNeed")}: {m.motorCurrentA.toFixed(1)} A rms / {m.peakCurrentA.toFixed(1)} A pk ·{" "}
+                          {t("results.driveUtil")} {(m.invUtilCont * 100).toFixed(0)}% / {(m.invUtilPeak * 100).toFixed(0)}%
+                        </span>
+                      </label>
                       <ul className="mt-3 flex flex-col gap-1">
                         {m.reasons.map((reason) => (
                           <li key={reason} className="flex gap-2 text-xs text-muted-foreground">
@@ -242,7 +292,7 @@ export function ResultsPanel() {
                           </li>
                         ))}
                       </ul>
-                      <ThermalCharts result={result} match={m} cycle={cycle} />
+                      <ThermalCharts key={m.inverter.id} result={result} match={m} cycle={cycle} />
                     </div>
                   )}
                 </li>
@@ -253,6 +303,29 @@ export function ResultsPanel() {
       </section>
     </div>
   );
+}
+
+function prettyUnit(unit: string): string {
+  return unit
+    .replaceAll("kg·m²", "kg·m²")
+    .replaceAll("N·m", "N·m")
+    .replaceAll("m/s²", "m/s²")
+    .replaceAll("m/s", "m/s");
+}
+
+function prettyMath(expr: string): string {
+  return expr
+    .replaceAll("*", "⋅")
+    .replaceAll("·", "⋅")
+    .replaceAll("<=", "≤")
+    .replaceAll(">=", "≥")
+    .replaceAll("!=", "≠")
+    .replaceAll("sqrt", "√")
+    .replaceAll("pi", "π")
+    .replaceAll("PI", "π")
+    .replaceAll(" / ", " ∕ ")
+    .replaceAll("sinθ", "sin θ")
+    .replaceAll("cosθ", "cos θ");
 }
 
 function translateNote(text: string, tr: (k: string, v?: Record<string, string | number>) => string): string {
@@ -278,6 +351,14 @@ function translateReason(reason: string, tr: (k: string, v?: Record<string, stri
   if (reason.startsWith("reason.flange|")) {
     const [, size, family, gb] = reason.split("|");
     return tr("reason.flange", { size, family, gb });
+  }
+  if (reason.startsWith("reason.fbLow|")) {
+    const [, req, avail] = reason.split("|");
+    return tr("reason.fbLow", { req, avail });
+  }
+  if (reason.startsWith("reason.fbOk|")) {
+    const [, req, avail] = reason.split("|");
+    return tr("reason.fbOk", { req, avail });
   }
   if (reason.startsWith("reason.")) return tr(reason);
   return reason;

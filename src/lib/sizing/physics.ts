@@ -1,5 +1,5 @@
 import { getApplication } from "./applications";
-import { cycleSummary, peakAccel } from "./cycle";
+import { cycleSummary, cycleOverridesPayload, peakAccel } from "./cycle";
 import type { ApplicationId, Inputs, MotionCycle, SizingResult } from "./types";
 
 const G = 9.80665;
@@ -31,34 +31,37 @@ function overlayCycle(
   r: SizingResult,
   cycle: MotionCycle | undefined,
   ctx: {
-    massKg: number;
-    fGrav: number;
-    fFric: number;
+    payloadDefaultKg: number;
+    toForce: (payloadKg: number, accel: number, phase: "accel" | "decel" | "hold") => number;
     toTorque: (forceN: number) => number;
     vToRpm: (v: number) => number;
   },
 ): SizingResult {
   if (!cycle?.enabled || cycle.segments.length === 0) return r;
   const sum = cycleSummary(cycle);
+  const tablePay = cycleOverridesPayload(cycle);
   let energy = 0;
   let peakT = 0;
   let raiseT = 0;
   let lowerT = 0;
+  let peakPay = ctx.payloadDefaultKg;
   for (const seg of cycle.segments) {
-    const gravSign = seg.inclineDir === "decel" ? -1 : seg.inclineDir === "hold" ? 0 : 1;
+    const pay = tablePay ? Math.max(0, Number(seg.payloadKg) || 0) : ctx.payloadDefaultKg;
+    if (pay > peakPay) peakPay = pay;
     const a = peakAccel(seg);
-    const f = gravSign * ctx.fGrav + ctx.fFric + ctx.massKg * a;
+    const f = ctx.toForce(pay, a, seg.inclineDir);
     const t = ctx.toTorque(f);
     const tAbs = Math.abs(t);
     energy += tAbs * tAbs * Math.max(seg.time, 0);
     if (tAbs > peakT) peakT = tAbs;
-    if (gravSign >= 0 && tAbs > raiseT) raiseT = tAbs;
-    if (gravSign < 0 && tAbs > lowerT) lowerT = tAbs;
+    if (seg.inclineDir !== "decel" && tAbs > raiseT) raiseT = tAbs;
+    if (seg.inclineDir === "decel" && tAbs > lowerT) lowerT = tAbs;
   }
   const period = Math.max(sum.periodS, 1e-6);
   r.rmsTorqueNm = Math.sqrt(energy / period);
   r.peakTorqueNm = Math.max(r.peakTorqueNm, peakT);
-  if (raiseT > 0) r.outputTorqueNm = Math.max(r.outputTorqueNm, ctx.toTorque(ctx.fGrav + ctx.fFric));
+  const cruiseF = ctx.toForce(ctx.payloadDefaultKg, 0, "accel");
+  r.outputTorqueNm = Math.abs(ctx.toTorque(cruiseF));
   if (lowerT > 0) r.loweringTorqueNm = Math.max(r.loweringTorqueNm, lowerT);
   r.outputSpeedRpm = ctx.vToRpm(sum.peakV);
   r.accelTimeS = cycle.segments.reduce((m, s) => (Math.abs(s.accel) > Math.abs(m.accel) ? s : m), cycle.segments[0]).time;
@@ -67,6 +70,7 @@ function overlayCycle(
   r.formulas.push({ name: "Peak velocity", expression: "max |v|", value: sum.peakV, unit: "m/s" });
   r.formulas.push({ name: "Peak acceleration", expression: "max |a| including law", value: sum.peakA, unit: "m/s²" });
   r.formulas.push({ name: "Cycle travel", expression: "Σ |s_i|", value: sum.travelMm, unit: "mm" });
+  r.formulas.push({ name: "Peak payload in cycle", expression: "max m_pay,i", value: peakPay, unit: "kg" });
   r.formulas.push({ name: "RMS from cycle", expression: "√(Σ T_i² t_i / T)", value: r.rmsTorqueNm, unit: "N·m" });
   r.notes.push(`Motion cycle: ${cycle.segments.length} segments, period ${sum.periodS.toFixed(2)} s, duty ${(sum.duty * 100).toFixed(0)}%.`);
   return r;
@@ -161,9 +165,13 @@ function sizeLinearBeltLike(
     { name: "RMS torque", expression: "T_rms from duty cycle", value: r.rmsTorqueNm, unit: "N·m" },
   ];
   overlayCycle(r, cycle, {
-    massKg: m,
-    fGrav,
-    fFric,
+    payloadDefaultKg: toSi(appId, inputs, massKeys.payload),
+    toForce: (pay, acc, phase) => {
+      const extra = toSi(appId, inputs, massKeys.extra);
+      const mt = pay + extra;
+      const gSign = phase === "decel" ? -1 : phase === "hold" ? 0 : 1;
+      return gSign * mt * G * Math.sin(theta) + mu * mt * G * Math.cos(theta) + mt * acc;
+    },
     toTorque: (f) => (f * radius) / eta,
     vToRpm: (vel) => (vel > 0 && d > 0 ? (vel / (Math.PI * d)) * 60 : 0),
   });
@@ -221,9 +229,13 @@ function sizeHoistLike(
   r.warnings.push("Specify a holding brake at least equal to holding torque × safety factor.");
   if (mCw > 0) r.notes.push("Counterweight cuts gravity torque but adds inertia on raise and lower.");
   overlayCycle(r, cycle, {
-    massKg: mInert / falls,
-    fGrav: fSteady,
-    fFric: 0,
+    payloadDefaultKg: mPay,
+    toForce: (pay, acc, phase) => {
+      const unbal = pay - mCw;
+      const inert = pay + mCw;
+      const gSign = phase === "decel" ? -1 : phase === "hold" ? 0 : 1;
+      return (gSign * unbal * G + inert * acc) / falls;
+    },
     toTorque: (f) => (f * radius) / eta,
     vToRpm: (vel) => (d > 0 ? ((vel * falls) / (Math.PI * d)) * 60 : 0),
   });
@@ -292,9 +304,15 @@ function sizeScrew(appId: ApplicationId, inputs: Inputs, cycle?: MotionCycle): S
   }
   if (mCw > 0) r.notes.push("Counterweight cuts gravity torque but adds inertia on raise and lower.");
   overlayCycle(r, cycle, {
-    massKg: mInert,
-    fGrav,
-    fFric,
+    payloadDefaultKg: mPay,
+    toForce: (pay, acc, phase) => {
+      const inert = pay + mCw;
+      const unbal = pay - mCw;
+      const gSign = phase === "decel" ? -1 : phase === "hold" ? 0 : 1;
+      const fg = unbal * G * Math.sin(theta);
+      const ff = mu * inert * G * Math.cos(theta) + preload;
+      return gSign * fg + ff + inert * acc;
+    },
     toTorque: (f) => (f * lead) / (2 * Math.PI * eta),
     vToRpm: (vel) => (lead > 0 ? (vel / lead) * 60 : 0),
   });
@@ -359,9 +377,15 @@ function sizeRackOrGantry(
     r.notes.push("Lowering is gravity-assisted. Check regenerative energy on the inverter.");
   }
   overlayCycle(r, cycle, {
-    massKg: mInert,
-    fGrav,
-    fFric,
+    payloadDefaultKg: mPay,
+    toForce: (pay, acc, phase) => {
+      const inert = pay + mCw;
+      const unbal = pay - mCw;
+      const gSign = phase === "decel" ? -1 : phase === "hold" ? 0 : 1;
+      const fg = unbal * G * Math.sin(theta);
+      const ff = mu * inert * G * Math.cos(theta);
+      return gSign * fg + ff + inert * acc;
+    },
     toTorque: (f) => (f * radius) / eta,
     vToRpm: (vel) => (d > 0 ? (vel / (Math.PI * d)) * 60 : 0),
   });

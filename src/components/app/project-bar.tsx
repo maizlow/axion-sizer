@@ -1,11 +1,23 @@
 import { useRef, useState } from "react";
-import { FolderOpen, Save } from "lucide-react";
+import { FolderOpen, Save, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { buildProject, fileNameFor, parseProject } from "@/lib/sizing/project-file";
 import { useT } from "@/lib/i18n/locale";
 import { useSizingStore } from "@/store/sizing-store";
 
-export function ProjectBar() {
+function snapshot(name: string) {
+  const snap = useSizingStore.getState();
+  return buildProject(name, {
+    applicationId: snap.applicationId,
+    inputs: snap.inputs,
+    cycle: snap.cycle,
+    motorKinds: snap.motorKinds,
+    gearboxKinds: snap.gearboxKinds,
+    selectedMatchId: snap.selectedMatchId,
+  });
+}
+
+export function ProjectBar({ compact }: { compact?: boolean }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [asking, setAsking] = useState(false);
   const [draftName, setDraftName] = useState("");
@@ -23,15 +35,7 @@ export function ProjectBar() {
 
   function confirmSave() {
     const name = draftName.trim() || t("untitled");
-    const snap = useSizingStore.getState();
-    const project = buildProject(name, {
-      applicationId: snap.applicationId,
-      inputs: snap.inputs,
-      cycle: snap.cycle,
-      motorKinds: snap.motorKinds,
-      gearboxKinds: snap.gearboxKinds,
-      selectedMatchId: snap.selectedMatchId,
-    });
+    const project = snapshot(name);
     setProjectName(name);
     const blob = new Blob([JSON.stringify(project, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -42,6 +46,61 @@ export function ProjectBar() {
     URL.revokeObjectURL(url);
     setAsking(false);
     setStatus(t("save.saved", { name: fileNameFor(name) }));
+  }
+
+  async function shareProject() {
+    const name = projectName.trim() || t("untitled");
+    const project = snapshot(name);
+    const json = JSON.stringify(project, null, 2);
+    const filename = fileNameFor(name);
+    const title = `Axion · ${name}`;
+    const text = t("share.text", { name });
+
+    const tryShare = async (data: ShareData) => {
+      if (typeof navigator.share !== "function") return false;
+      try {
+        await navigator.share(data);
+        return true;
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") return true;
+        return false;
+      }
+    };
+
+    const files: File[] = [];
+    if (typeof File !== "undefined") {
+      files.push(new File([json], filename, { type: "text/plain" }));
+    }
+
+    if (files.length && typeof navigator.canShare === "function") {
+      try {
+        if (navigator.canShare({ files })) {
+          if (await tryShare({ title, text, files })) {
+            setStatus(t("share.ok"));
+            return;
+          }
+        }
+      } catch {
+        /* canShare throws on some WebViews */
+      }
+    }
+
+    if (await tryShare({ title, text: `${text}\n\n${json}` })) {
+      setStatus(t("share.ok"));
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(json);
+      setStatus(t("share.copied"));
+      return;
+    } catch {
+      /* fall through */
+    }
+
+    const body = encodeURIComponent(`${text}\n\n${json.slice(0, 1200)}`);
+    window.location.href = `mailto:?subject=${encodeURIComponent(title)}&body=${body}`;
+    setStatus(t("share.mail"));
   }
 
   async function onFile(file: File | undefined) {
@@ -57,17 +116,21 @@ export function ProjectBar() {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex h-8 items-center gap-1.5">
       <span className="hidden max-w-[10rem] truncate text-xs text-muted-foreground sm:inline" title={projectName}>
         {projectName}
       </span>
-      <Button type="button" size="sm" variant="outline" onClick={openSave}>
-        <Save className="size-3.5" />
-        {t("save")}
+      <Button type="button" size="sm" variant="outline" className="h-8 px-2 lg:hidden" onClick={() => void shareProject()}>
+        <Share2 className="size-3.5" />
+        <span className="sr-only">{t("share")}</span>
       </Button>
-      <Button type="button" size="sm" variant="outline" onClick={() => fileRef.current?.click()}>
+      <Button type="button" size="sm" variant="outline" onClick={openSave} className={compact ? "hidden h-8 px-2 lg:inline-flex" : "h-8"}>
+        <Save className="size-3.5" />
+        <span className={compact ? "hidden lg:inline" : undefined}>{t("save")}</span>
+      </Button>
+      <Button type="button" size="sm" variant="outline" onClick={() => fileRef.current?.click()} className={compact ? "hidden h-8 px-2 lg:inline-flex" : "h-8"}>
         <FolderOpen className="size-3.5" />
-        {t("load")}
+        <span className={compact ? "hidden lg:inline" : undefined}>{t("load")}</span>
       </Button>
       <input
         ref={fileRef}
@@ -106,7 +169,7 @@ export function ProjectBar() {
           </div>
         </div>
       )}
-      {status && <span className="text-[11px] text-muted-foreground">{status}</span>}
+      {status && !compact && <span className="text-[11px] text-muted-foreground">{status}</span>}
     </div>
   );
 }

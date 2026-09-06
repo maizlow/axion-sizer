@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import type { ApplicationId } from "@/lib/sizing/types";
 
-const ink = "#d5dbe2";
-const mute = "#8b929c";
-const accent = "#6f8f8a";
+const ink = "var(--color-foreground)";
+const mute = "var(--color-muted-foreground)";
+const accent = "var(--color-accent)";
 
 function Svg({ children, wide }: { children: ReactNode; wide?: boolean }) {
   return (
@@ -24,10 +24,43 @@ export function FieldGlyph({ id }: { id?: string }) {
     <Svg>
       {id === "mass" && (
         <>
-          <rect x="14" y="10" width="28" height="18" rx="2" stroke={ink} />
-          <text x="28" y="23" textAnchor="middle" fill={mute} fontSize="8">
+          <rect x="18" y="8" width="20" height="16" rx="1.5" stroke={ink} />
+          <path d="M16 26 H40 L36 34 H20 Z" stroke={mute} />
+          <text x="28" y="19" textAnchor="middle" fill={mute} fontSize="8">
             m
           </text>
+        </>
+      )}
+      {id === "hoist" && (
+        <>
+          <path d="M18 8 H38" stroke={mute} />
+          <path d="M28 8 V24" stroke={accent} />
+          <path d="M22 24 C22 32 28 34 28 34 C28 34 34 32 34 24" stroke={ink} />
+        </>
+      )}
+      {id === "pressure" && (
+        <>
+          <circle cx="28" cy="20" r="12" stroke={ink} />
+          <path d="M28 20 L36 12" stroke={accent} />
+          <path d="M20 28 H36" stroke={mute} />
+        </>
+      )}
+      {id === "head" && (
+        <>
+          <path d="M18 32 V10 H38 V32" stroke={ink} />
+          <path d="M18 22 H38" stroke={accent} />
+          <path d="M40 10 V22" stroke={mute} />
+          <text x="44" y="18" fill={mute} fontSize="7">
+            H
+          </text>
+        </>
+      )}
+      {id === "drum" && (
+        <>
+          <ellipse cx="16" cy="20" rx="5" ry="10" stroke={ink} />
+          <ellipse cx="40" cy="20" rx="5" ry="10" stroke={ink} />
+          <path d="M16 10 H40 M16 30 H40" stroke={mute} />
+          <path d="M28 8 V10" stroke={accent} />
         </>
       )}
       {id === "speed" && (
@@ -69,24 +102,10 @@ export function FieldGlyph({ id }: { id?: string }) {
           </text>
         </>
       )}
-      {id === "drum" && (
-        <>
-          <rect x="14" y="10" width="28" height="20" rx="6" stroke={ink} />
-          <circle cx="18" cy="20" r="2" fill={accent} />
-          <circle cx="38" cy="20" r="2" fill={accent} />
-        </>
-      )}
       {id === "falls" && (
         <>
           <path d="M16 8 V32 M28 8 V32 M40 8 V32" stroke={ink} />
           <path d="M16 32 H40" stroke={accent} />
-        </>
-      )}
-      {id === "hoist" && (
-        <>
-          <path d="M12 10 H44 V16" stroke={ink} />
-          <path d="M28 16 V30" stroke={accent} />
-          <path d="M22 30 H34" stroke={ink} />
         </>
       )}
       {id === "pinion" && (
@@ -131,19 +150,6 @@ export function FieldGlyph({ id }: { id?: string }) {
       {id === "flow" && (
         <>
           <path d="M8 20 C16 10, 24 30, 32 20 C40 10, 48 26, 52 20" stroke={accent} />
-        </>
-      )}
-      {id === "pressure" && (
-        <>
-          <rect x="16" y="8" width="24" height="24" rx="2" stroke={ink} />
-          <path d="M28 14 V26" stroke={accent} />
-        </>
-      )}
-      {id === "head" && (
-        <>
-          <path d="M16 32 V12 H40 V32" stroke={ink} />
-          <path d="M20 12 V8 M36 12 V8" stroke={mute} />
-          <path d="M20 22 H36" stroke={accent} />
         </>
       )}
       {id === "density" && (

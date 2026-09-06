@@ -22,16 +22,18 @@ const ROWS: {
 }[] = [
   { key: "inclineDir", label: "Motion phase", unit: "—", kind: "select" },
   { key: "accelLaw", label: "Type of acceleration", unit: "—", kind: "select" },
-  { key: "vStart", label: "Start velocity", unit: "m/s", kind: "number", digits: 2 },
-  { key: "vEnd", label: "End velocity", unit: "m/s", kind: "number", digits: 2 },
-  { key: "accel", label: "Acceleration", unit: "m/s²", kind: "number", digits: 2 },
-  { key: "time", label: "Time", unit: "s", kind: "number", digits: 2 },
+  { key: "vStart", label: "Start velocity", unit: "m/s", kind: "number", digits: 1 },
+  { key: "vEnd", label: "End velocity", unit: "m/s", kind: "number", digits: 1 },
+  { key: "accel", label: "Acceleration", unit: "m/s²", kind: "number", digits: 1 },
+  { key: "time", label: "Time", unit: "s", kind: "number", digits: 1 },
   { key: "distanceMm", label: "Distance", unit: "mm", kind: "number", digits: 1 },
+  { key: "payloadKg", label: "Payload", unit: "kg", kind: "number", digits: 1 },
   { key: "positionMm", label: "Position", unit: "mm", kind: "derived", digits: 1 },
 ];
 
 export function MotionCycleTable() {
   const applicationId = useSizingStore((s) => s.applicationId);
+  const inputs = useSizingStore((s) => s.inputs);
   const cycle = useSizingStore((s) => s.cycle);
   const setCycleEnabled = useSizingStore((s) => s.setCycleEnabled);
   const updateSegment = useSizingStore((s) => s.updateSegment);
@@ -88,7 +90,7 @@ export function MotionCycleTable() {
             </tr>
           </thead>
           <tbody>
-            {ROWS.map((row) => (
+            {ROWS.filter((row) => row.key !== "payloadKg" || Number.isFinite(Number(inputs.payloadKg))).map((row) => (
               <tr key={row.key} className="border-t border-border">
                 <th className="sticky left-0 bg-card px-3 py-1.5 text-xs font-medium text-foreground">
                   <span className="inline-flex items-center gap-1">
@@ -107,7 +109,9 @@ export function MotionCycleTable() {
                                   ? "cycle.time"
                                   : row.key === "distanceMm"
                                     ? "cycle.distance"
-                                    : "cycle.position",
+                                    : row.key === "payloadKg"
+                                      ? "cycle.payload"
+                                      : "cycle.position",
                     )}
                     <FieldTip text={t(`help.${row.key}`)} label={row.label} />
                   </span>
@@ -130,8 +134,8 @@ export function MotionCycleTable() {
           {t("cycle.add")}
         </Button>
         <p className="font-mono text-xs text-muted-foreground">
-          T = {sum.periodS.toFixed(2)} s · travel {sum.travelMm.toFixed(0)} mm · v<sub>max</sub> {sum.peakV.toFixed(2)}{" "}
-          m/s · a<sub>max</sub> {sum.peakA.toFixed(2)} m/s²
+          T = {sum.periodS.toFixed(1)} s · travel {sum.travelMm.toFixed(1)} mm · v<sub>max</sub> {sum.peakV.toFixed(1)}{" "}
+          m/s · a<sub>max</sub> {sum.peakA.toFixed(1)} m/s²
         </p>
           </div>
         </>
@@ -186,7 +190,8 @@ function Cell({
       </select>
     );
   }
-  const raw = seg[row.key];
+  const fallbackPay = 0;
+  const raw = row.key === "payloadKg" ? (seg.payloadKg ?? fallbackPay) : seg[row.key];
   const n = typeof raw === "number" ? raw : Number(raw);
   if (row.kind === "derived") {
     return <span className="block h-8 px-2 py-1.5 font-mono text-xs tabular-nums text-muted-foreground">{fmt(n, row.digits ?? 2)}</span>;
@@ -194,14 +199,14 @@ function Cell({
   return (
     <input
       type="number"
-      step="any"
+      step="0.1"
       inputMode="decimal"
       className="h-8 w-full min-w-[5.5rem] rounded-[var(--radius-sm)] border border-border bg-input px-2 font-mono text-xs tabular-nums"
-      value={Number.isFinite(n) ? n : 0}
+      value={Number.isFinite(n) ? n.toFixed(1) : "0.0"}
       onChange={(e) => {
         const v = Number(e.target.value);
         if (!Number.isFinite(v)) return;
-        onEdit(seg.id, { [row.key]: v } as Partial<CycleSegment>, row.key);
+        onEdit(seg.id, { [row.key]: Math.round(v * 10) / 10 } as Partial<CycleSegment>, row.key);
       }}
     />
   );

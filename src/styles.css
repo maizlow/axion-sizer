@@ -3,6 +3,7 @@
 @theme {
   --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  --font-math: "STIX Two Text", "STIX Two Math", "Times New Roman", serif;
   --color-bg: #0c0e11;
   --color-background: #0c0e11;
   --color-foreground: #e6e8eb;
@@ -40,6 +41,29 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
   }
+  html.light {
+    --color-bg: #f3f1ec;
+    --color-background: #f3f1ec;
+    --color-foreground: #1c1f24;
+    --color-surface: #fffdf8;
+    --color-card: #fffdf8;
+    --color-card-foreground: #1c1f24;
+    --color-muted: #e7e3db;
+    --color-muted-foreground: #5c6168;
+    --color-border: #d4cfc4;
+    --color-input: #ffffff;
+    --color-primary: #2a3038;
+    --color-primary-foreground: #f3f1ec;
+    --color-secondary: #e7e3db;
+    --color-secondary-foreground: #1c1f24;
+    --color-accent: #3f6b64;
+    --color-accent-foreground: #f4fffb;
+    --color-ring: #3f6b64;
+    --color-ok: #3d6b3a;
+    --color-warn: #8a6a1f;
+    --color-danger: #9a3f36;
+  }
+
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;

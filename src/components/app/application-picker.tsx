@@ -1,14 +1,14 @@
 import {
-  ArrowUpDown,
+  Blend,
   Boxes,
-  Cog,
-  Fan,
-  Gauge,
+  ChevronsRight,
+  Droplets,
+  Frame,
   Layers,
   MoveHorizontal,
   RotateCw,
-  Sailboat,
-  Truck,
+  ArrowUpDown,
+  Disc,
   Wind,
 } from "lucide-react";
 import { APPLICATIONS } from "@/lib/sizing/applications";
@@ -17,18 +17,18 @@ import { cn } from "@/lib/cn";
 import { useT } from "@/lib/i18n/locale";
 import { useSizingStore } from "@/store/sizing-store";
 
-const ICONS: Record<ApplicationId, typeof Cog> = {
+const ICONS: Record<ApplicationId, typeof Layers> = {
   conveyor: Layers,
   "roller-conveyor": Boxes,
   crane: ArrowUpDown,
-  winch: Sailboat,
+  winch: Disc,
   "ball-screw": MoveHorizontal,
-  "rack-pinion": Gauge,
-  gantry: Truck,
+  "rack-pinion": ChevronsRight,
+  gantry: Frame,
   "rotary-table": RotateCw,
-  mixer: Cog,
+  mixer: Blend,
   fan: Wind,
-  pump: Fan,
+  pump: Droplets,
 };
 
 const GROUPS = [
@@ -38,7 +38,7 @@ const GROUPS = [
   { id: "process", label: "Process" },
 ] as const;
 
-export function ApplicationPicker() {
+export function ApplicationPicker({ onPicked }: { onPicked?: () => void }) {
   const applicationId = useSizingStore((s) => s.applicationId);
   const setApplication = useSizingStore((s) => s.setApplication);
   const t = useT();
@@ -60,7 +60,10 @@ export function ApplicationPicker() {
                   <button
                     key={app.id}
                     type="button"
-                    onClick={() => setApplication(app.id)}
+                    onClick={() => {
+                      setApplication(app.id);
+                      onPicked?.();
+                    }}
                     className={cn(
                       "flex min-h-11 items-start gap-3 rounded-[var(--radius-md)] border px-3 py-3 text-left transition-colors",
                       active

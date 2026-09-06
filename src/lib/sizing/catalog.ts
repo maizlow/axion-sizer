@@ -1,4 +1,4 @@
-import type { Gearbox, Motor } from "./types";
+import type { Gearbox, Inverter, Motor } from "./types";
 
 /** SEW-EURODRIVE published CM3C standstill data. Jmot is ×10⁻⁴ kg·m². */
 const CM3C_ROWS = [
@@ -218,4 +218,38 @@ export const RATIO_SETS: { family: string; one: number[]; two: number[]; note: s
 ];
 
 export const CATALOG_SOURCE =
-  "Representative CM3C / CM3P standstill figures and published PS.F / PS.C integer ratios. PxG, R and K use preferred iN ladders, not every catalog row. Flange pairing is by frame vs gear-unit size. Confirm the type code in official SEW catalogs and Workbench — this table is not licensed and is not complete.";
+  "Representative CM3C / CM3P standstill figures, published PS.F / PS.C integer ratios, and MOVITRAC advanced 400 V sizes by output current. Confirm every type code in official SEW catalogs and Workbench — this table is not licensed and is not complete.";
+
+/** Representative MOVITRAC advanced, 3×400 V. Number in the type is rated output current ×10. Overload 150%. */
+const MCA_ROWS: { code: string; kw: number; iA: number }[] = [
+  { code: "0010", kw: 0.25, iA: 1.0 },
+  { code: "0014", kw: 0.37, iA: 1.4 },
+  { code: "0018", kw: 0.55, iA: 1.8 },
+  { code: "0024", kw: 0.75, iA: 2.4 },
+  { code: "0032", kw: 1.1, iA: 3.2 },
+  { code: "0042", kw: 1.5, iA: 4.2 },
+  { code: "0058", kw: 2.2, iA: 5.8 },
+  { code: "0072", kw: 3.0, iA: 7.2 },
+  { code: "0095", kw: 4.0, iA: 9.5 },
+  { code: "0124", kw: 5.5, iA: 12.4 },
+  { code: "0155", kw: 7.5, iA: 15.5 },
+  { code: "0230", kw: 11, iA: 23 },
+  { code: "0320", kw: 15, iA: 32 },
+  { code: "0380", kw: 18.5, iA: 38 },
+  { code: "0470", kw: 22, iA: 47 },
+  { code: "0610", kw: 30, iA: 61 },
+  { code: "0730", kw: 37, iA: 73 },
+  { code: "0900", kw: 45, iA: 90 },
+  { code: "1100", kw: 55, iA: 110 },
+];
+
+export const INVERTERS: Inverter[] = MCA_ROWS.map((row) => ({
+  id: `mcx91a-${row.code}`,
+  name: `MCX91A-${row.code}`,
+  family: "MOVITRAC advanced",
+  ratedPowerKw: row.kw,
+  ratedCurrentA: row.iA,
+  maxCurrentA: row.iA * 1.5,
+  voltageV: 400,
+}));
+

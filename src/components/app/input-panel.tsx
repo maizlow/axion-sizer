@@ -4,7 +4,7 @@ import { FieldTip } from "@/components/app/field-tip";
 import { FrictionTooltip } from "@/components/app/friction-tooltip";
 import { MotionCycleTable } from "@/components/app/motion-cycle-table";
 import { getApplication } from "@/lib/sizing/applications";
-import { fieldCoveredByCycle } from "@/lib/sizing/cycle";
+import { fieldCoveredByCycle, cycleOverridesPayload } from "@/lib/sizing/cycle";
 import { useT } from "@/lib/i18n/locale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,9 +15,11 @@ export function InputPanel() {
   const inputs = useSizingStore((s) => s.inputs);
   const setInput = useSizingStore((s) => s.setInput);
   const resetInputs = useSizingStore((s) => s.resetInputs);
+  const resetCyclePayload = useSizingStore((s) => s.resetCyclePayload);
   const cycle = useSizingStore((s) => s.cycle);
   const app = getApplication(applicationId);
   const t = useT();
+  const tablePayload = cycleOverridesPayload(cycle);
 
   return (
     <div className="flex flex-col gap-5">
@@ -73,6 +75,7 @@ export function InputPanel() {
             const raw = inputs[field.key];
             const stored = typeof raw === "number" ? raw : Number(raw);
             const shown = Number.isFinite(stored) ? stored : "";
+            const locked = field.key === "payloadKg" && tablePayload;
             return (
               <label key={field.key} className="flex flex-col gap-1.5">
                 <span className="flex items-center justify-between gap-2">
@@ -82,13 +85,19 @@ export function InputPanel() {
                     <FieldTip text={t(`help.${field.key}`)} label={t(`field.${field.key}`)} />
                     {field.key === "mu" && <FrictionTooltip onPick={(mu) => setInput("mu", mu)} />}
                   </span>
+                  {locked && (
+                    <Button type="button" size="sm" variant="outline" onClick={resetCyclePayload}>
+                      {t("cycle.resetPayload")}
+                    </Button>
+                  )}
                 </span>
                 <div className="relative">
                   <Input
                     type="number"
                     inputMode="decimal"
-                    className="pr-16"
+                    className={locked ? "pr-16 opacity-50" : "pr-16"}
                     value={shown}
+                    disabled={locked}
                     onChange={(e) => {
                       const v = e.target.value;
                       if (v === "") {

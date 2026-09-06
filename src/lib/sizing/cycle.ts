@@ -38,6 +38,11 @@ export function fieldCoveredByCycle(appId: ApplicationId, fieldKey: string, cycl
   return (CYCLE_COVERED_KEYS as readonly string[]).includes(fieldKey);
 }
 
+export function cycleOverridesPayload(cycle: MotionCycle | undefined): boolean {
+  if (!cycle?.enabled) return false;
+  return cycle.segments.some((s) => (s.payloadKg ?? 0) > 0);
+}
+
 
 function sid(): string {
   return `seg-${Math.random().toString(36).slice(2, 8)}`;
@@ -75,11 +80,13 @@ export function emptySegment(prev?: CycleSegment): CycleSegment {
     time: 0.3,
     distanceMm: 0,
     positionMm: pos,
+    payloadKg: 0,
   };
 }
 
 export function fillKinematics(seg: CycleSegment, edited: keyof CycleSegment | "all"): CycleSegment {
   const s = { ...seg };
+  if (edited === "payloadKg" || edited === "inclineDir" || edited === "accelLaw" || edited === "id") return s;
   const dv = s.vEnd - s.vStart;
   if (edited === "accel" && Math.abs(s.accel) > 1e-9 && Math.abs(dv) > 1e-12) {
     const t = dv / s.accel;
@@ -120,6 +127,7 @@ export function defaultCycle(appId: ApplicationId, inputs: Inputs): MotionCycle 
   if (!appsWithCycle(appId)) return { enabled: false, segments: [] };
   const v = Math.max(0.01, speedSi(appId, inputs));
   const t = accelTimeSi(appId, inputs);
+  const payloadKg = 0;
   const a = v / t;
   const s = 0.5 * v * t * 1000;
   const dir: InclineDir = "accel";
@@ -134,6 +142,7 @@ export function defaultCycle(appId: ApplicationId, inputs: Inputs): MotionCycle 
       time: t,
       distanceMm: s,
       positionMm: s,
+      payloadKg,
     },
     "all",
   );
@@ -148,6 +157,7 @@ export function defaultCycle(appId: ApplicationId, inputs: Inputs): MotionCycle 
       time: t,
       distanceMm: s,
       positionMm: 2 * s,
+      payloadKg,
     },
     "all",
   );
@@ -162,6 +172,7 @@ export function defaultCycle(appId: ApplicationId, inputs: Inputs): MotionCycle 
       time: 0.3,
       distanceMm: 0,
       positionMm: 2 * s,
+      payloadKg,
     },
     "all",
   );

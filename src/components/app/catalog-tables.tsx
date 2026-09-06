@@ -1,4 +1,4 @@
-import { CATALOG_SOURCE, GEARBOXES, MOTORS, RATIO_SETS } from "@/lib/sizing/catalog";
+import { CATALOG_SOURCE, GEARBOXES, INVERTERS, MOTORS, RATIO_SETS } from "@/lib/sizing/catalog";
 import { formatNm, formatRpm } from "@/lib/sizing/match";
 import { useT } from "@/lib/i18n/locale";
 
@@ -55,6 +55,36 @@ export function CatalogTables() {
                     {(m.inertiaKgm2 * 1e4).toFixed(1)}
                   </td>
                   <td className="px-3 py-2 text-right font-mono tabular-nums">{m.massKg}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h3 className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+          {t("catalog.inverters")}
+        </h3>
+        <div className="overflow-x-auto rounded-[var(--radius-md)] border border-border">
+          <table className="w-full min-w-[480px] text-left text-sm">
+            <thead className="bg-muted text-xs uppercase tracking-[0.08em] text-muted-foreground">
+              <tr>
+                <th className="px-3 py-2 font-medium">{t("catalog.type")}</th>
+                <th className="px-3 py-2 text-right font-medium">P kW</th>
+                <th className="px-3 py-2 text-right font-medium">I_N A</th>
+                <th className="px-3 py-2 text-right font-medium">I_max A</th>
+                <th className="px-3 py-2 text-right font-medium">U V</th>
+              </tr>
+            </thead>
+            <tbody>
+              {INVERTERS.map((d) => (
+                <tr key={d.id} className="border-t border-border">
+                  <td className="px-3 py-2 font-medium">{d.name}</td>
+                  <td className="px-3 py-2 text-right font-mono tabular-nums">{d.ratedPowerKw}</td>
+                  <td className="px-3 py-2 text-right font-mono tabular-nums">{d.ratedCurrentA}</td>
+                  <td className="px-3 py-2 text-right font-mono tabular-nums">{d.maxCurrentA.toFixed(1)}</td>
+                  <td className="px-3 py-2 text-right font-mono tabular-nums">{d.voltageV}</td>
                 </tr>
               ))}
             </tbody>

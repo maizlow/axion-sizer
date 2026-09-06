@@ -1,4 +1,5 @@
-import type { Gearbox, MatchScore, MotionCycle, Motor, SizingResult } from "./types";
+import { motorRatedCurrentA } from "./match";
+import type { Gearbox, Inverter, MatchScore, MotionCycle, Motor, SizingResult } from "./types";
 
 export interface CurvePt {
   n: number;
@@ -58,6 +59,22 @@ export function gearboxThermalCurve(gb: Gearbox): CurvePt[] {
     pts.push({ n, t });
   }
   return pts;
+}
+
+export function inverterLimitCurves(motor: Motor, inv: Inverter): { cont: CurvePt[]; peak: CurvePt[] } {
+  const iMot = Math.max(motorRatedCurrentA(motor), 1e-6);
+  const tCont = motor.contTorqueNm * (inv.ratedCurrentA / iMot);
+  const tPeak = motor.contTorqueNm * (inv.maxCurrentA / iMot);
+  const nR = motor.ratedSpeedRpm;
+  const nMax = nR * 1.12;
+  const cont: CurvePt[] = [];
+  const peak: CurvePt[] = [];
+  for (let n = 0; n <= nMax; n += nMax / 24) {
+    const fade = n <= nR ? 1 : Math.max(0.25, nR / n);
+    cont.push({ n, t: tCont * fade });
+    peak.push({ n, t: tPeak * fade });
+  }
+  return { cont, peak };
 }
 
 export function operatingPoints(result: SizingResult, match: MatchScore, _cycle?: MotionCycle): {

@@ -68,6 +68,16 @@ export interface Motor {
   notes: string;
 }
 
+export interface Inverter {
+  id: string;
+  name: string;
+  family: string;
+  ratedPowerKw: number;
+  ratedCurrentA: number;
+  maxCurrentA: number;
+  voltageV: number;
+}
+
 export interface Gearbox {
   id: string;
   name: string;
@@ -115,6 +125,7 @@ export interface SizingResult {
 export interface MatchScore {
   motor: Motor;
   gearbox: Gearbox;
+  inverter: Inverter;
   outputContNm: number;
   outputPeakNm: number;
   outputSpeedRpm: number;
@@ -129,6 +140,13 @@ export interface MatchScore {
   mountOk: boolean;
   score: number;
   reasons: string[];
+  motorCurrentA: number;
+  peakCurrentA: number;
+  invUtilCont: number;
+  invUtilPeak: number;
+  serviceFactorFb: number;
+  serviceFactorAvail: number;
+  loadClass: "I" | "II" | "III";
 }
 
 export type AccelLaw = "linear" | "sin2" | "jerk";
@@ -144,6 +162,7 @@ export interface CycleSegment {
   time: number;
   distanceMm: number;
   positionMm: number;
+  payloadKg?: number;
 }
 
 export interface MotionCycle {
