@@ -506,7 +506,6 @@ export function GraniaShell() {
           )}
           <p className="mt-3 text-xs text-muted-foreground">{t("grania.recipeNote")}</p>
         </section>
-        </section>
       </main>
 
       <footer className="mx-auto max-w-[1100px] px-4 pb-8 text-xs text-muted-foreground sm:px-6">
