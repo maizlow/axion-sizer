@@ -147,6 +147,9 @@ function authPopupPlugin(): Plugin {
 // AGENTS.md § "First scaffold".
 export default defineConfig(({ command, isPreview }) => ({
   base: process.env.GITHUB_PAGES === "1" ? "/axion-sizer/" : "/",
+  define: {
+    __AXION_SHA__: JSON.stringify(process.env.GITHUB_SHA ?? process.env.VITE_GIT_SHA ?? "local"),
+  },
   server: {
     host: "0.0.0.0",
     port: 8080,

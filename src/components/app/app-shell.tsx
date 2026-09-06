@@ -74,6 +74,9 @@ export function AppShell() {
         Axion is an independent engineering calculator. Product names such as CM3C, CM3P and
         Workbench belong to SEW-EURODRIVE. SI units only. Confirm every type code in official
         documentation before release.
+        <div className="mt-3 font-mono text-[10px] tracking-wide text-muted-foreground/50">
+          {typeof __AXION_SHA__ === "string" && __AXION_SHA__ ? __AXION_SHA__.slice(0, 7) : "local"}
+        </div>
       </footer>
     </div>
   );

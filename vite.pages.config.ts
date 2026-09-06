@@ -7,6 +7,9 @@ export default defineConfig({
   base: "/axion-sizer/",
   plugins: [tailwindcss(), viteReact()],
   resolve: { tsconfigPaths: true },
+  define: {
+    __AXION_SHA__: JSON.stringify(process.env.GITHUB_SHA ?? process.env.VITE_GIT_SHA ?? ""),
+  },
   build: {
     outDir: "dist-pages",
     emptyOutDir: true,
