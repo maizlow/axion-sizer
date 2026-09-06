@@ -1,8 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AppShell } from "@/components/app/app-shell";
+import { ToolsHub } from "@/components/hub/tools-hub";
 
-export const Route = createFileRoute("/")({ component: Home });
-
-function Home() {
-  return <AppShell />;
-}
+export const Route = createFileRoute("/")({ component: ToolsHub });

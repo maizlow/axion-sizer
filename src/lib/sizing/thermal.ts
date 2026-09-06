@@ -12,9 +12,11 @@ export interface OpPt {
   t: number;
   label: string;
   kind: "s1" | "peak" | "hold";
+  color?: string;
+  tag?: string;
 }
 
-export function motorPeakCurve(motor: Motor): CurvePt[] {
+export function motorPeakCurve(motor: Pick<Motor, "ratedSpeedRpm" | "peakTorqueNm">): CurvePt[] {
   const nR = motor.ratedSpeedRpm;
   const mpk = motor.peakTorqueNm;
   const nMax = nR * 1.12;
@@ -28,7 +30,7 @@ export function motorPeakCurve(motor: Motor): CurvePt[] {
 }
 
 /** Approximate S1 / effective continuous limit vs speed (non-ventilated shape). */
-export function motorS1Curve(motor: Motor): CurvePt[] {
+export function motorS1Curve(motor: Pick<Motor, "ratedSpeedRpm" | "contTorqueNm">): CurvePt[] {
   const nR = motor.ratedSpeedRpm;
   const m0 = motor.contTorqueNm;
   const pts: CurvePt[] = [];

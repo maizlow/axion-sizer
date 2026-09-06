@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { AlertTriangle, Check } from "lucide-react";
+import { useMemo, useState } from "react";
+import { AlertTriangle, Check, ChevronDown, ChevronRight, Plus, X } from "lucide-react";
 import { calculateSizing } from "@/lib/sizing/physics";
 import { formatKw, formatNm, formatRpm, matchDrives } from "@/lib/sizing/match";
 import { INVERTERS } from "@/lib/sizing/catalog";
@@ -7,7 +7,7 @@ import type { GearboxKind, MotorKind } from "@/lib/sizing/types";
 import { cn } from "@/lib/cn";
 import { useSizingStore } from "@/store/sizing-store";
 import { Button } from "@/components/ui/button";
-import { ThermalCharts } from "@/components/app/thermal-charts";
+import { ThermalCharts, CompareThermalCharts } from "@/components/app/thermal-charts";
 import { useT } from "@/lib/i18n/locale";
 
 const MOTOR_OPTS: { id: MotorKind; label: string }[] = [
@@ -68,10 +68,41 @@ export function ResultsPanel() {
   const cycle = useSizingStore((s) => s.cycle);
   const t = useT();
   const result = useMemo(() => calculateSizing(applicationId, inputs, cycle), [applicationId, inputs, cycle]);
-  const matches = useMemo(
+  const matchesAll = useMemo(
     () => matchDrives(result, { motorKinds, gearboxKinds, hoursPerDay, cycle }, inverterId),
     [result, motorKinds, gearboxKinds, inverterId, hoursPerDay, cycle],
   );
+  const iSpan = useMemo(() => {
+    const rs = matchesAll.map((m) => m.gearbox.ratio);
+    if (!rs.length) return { min: 1, max: 100 };
+    return { min: Math.min(...rs), max: Math.max(...rs) };
+  }, [matchesAll]);
+  const [iMin, setIMin] = useState<number | null>(null);
+  const [iMax, setIMax] = useState<number | null>(null);
+  const [showCalc, setShowCalc] = useState(false);
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const ratioMin = iMin ?? iSpan.min;
+  const ratioMax = iMax ?? iSpan.max;
+  const matches = useMemo(
+    () => matchesAll.filter((m) => m.gearbox.ratio >= ratioMin - 1e-9 && m.gearbox.ratio <= ratioMax + 1e-9),
+    [matchesAll, ratioMin, ratioMax],
+  );
+
+  function matchKey(m: { motor: { id: string }; gearbox: { id: string } }) {
+    return `${m.motor.id}-${m.gearbox.id}`;
+  }
+
+  function toggleCompare(id: string) {
+    setCompareIds((cur) => {
+      if (cur.includes(id)) return cur.filter((x) => x !== id);
+      if (cur.length >= 4) return cur;
+      return [...cur, id];
+    });
+  }
+
+  const compared = compareIds
+    .map((id) => matchesAll.find((m) => matchKey(m) === id))
+    .filter((m): m is NonNullable<typeof m> => Boolean(m));
 
   const lifting = result.holdingTorqueNm > 0 || result.loweringTorqueNm > 0;
 
@@ -113,9 +144,19 @@ export function ResultsPanel() {
       )}
 
       <section>
-        <h3 className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-          {t("results.calc")}
-        </h3>
+        <button
+          type="button"
+          className="mb-2 flex w-full items-center gap-2 rounded-[var(--radius-sm)] border border-border bg-card px-3 py-2.5 text-left hover:bg-muted"
+          onClick={() => setShowCalc((v) => !v)}
+          aria-expanded={showCalc}
+        >
+          {showCalc ? <ChevronDown className="size-4 shrink-0" /> : <ChevronRight className="size-4 shrink-0" />}
+          <h3 className="text-sm font-medium">{t("results.calc")}</h3>
+          <span className="ml-auto text-xs text-muted-foreground">
+            {showCalc ? t("results.hideCalc") : t("results.showCalc")}
+          </span>
+        </button>
+        {showCalc && (
         <div className="overflow-hidden rounded-[var(--radius-md)] border border-border bg-[color-mix(in_oklab,var(--color-card)_88%,#1a1814)]">
           <table className="w-full text-left">
             <thead className="border-b border-border text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
@@ -149,6 +190,7 @@ export function ResultsPanel() {
             </tbody>
           </table>
         </div>
+        )}
       </section>
 
       <section className="flex flex-col gap-3">
@@ -197,6 +239,106 @@ export function ResultsPanel() {
             </select>
           </label>
         </div>
+        <div className="rounded-[var(--radius-md)] border border-border px-3 py-2">
+          <div className="mb-1 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+            <span>{t("results.ratio")}</span>
+            <span className="font-mono tabular-nums">
+              i {ratioMin.toFixed(ratioMin >= 10 ? 0 : 1)} – {ratioMax.toFixed(ratioMax >= 10 ? 0 : 1)}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">
+              min
+              <input
+                type="range"
+                min={iSpan.min}
+                max={iSpan.max}
+                step="0.1"
+                value={Math.min(ratioMin, ratioMax)}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setIMin(v);
+                  if (v > ratioMax) setIMax(v);
+                }}
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">
+              max
+              <input
+                type="range"
+                min={iSpan.min}
+                max={iSpan.max}
+                step="0.1"
+                value={Math.max(ratioMax, ratioMin)}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setIMax(v);
+                  if (v < ratioMin) setIMin(v);
+                }}
+              />
+            </label>
+          </div>
+        </div>
+
+        {compared.length > 0 && (
+          <div className="overflow-x-auto rounded-[var(--radius-md)] border border-border">
+            <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
+              <h4 className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                {t("compare.title")}
+              </h4>
+              <Button type="button" size="sm" variant="ghost" onClick={() => setCompareIds([])}>
+                {t("compare.clear")}
+              </Button>
+            </div>
+            <table className="w-full min-w-[36rem] text-left text-sm">
+              <thead>
+                <tr className="border-b border-border text-xs text-muted-foreground">
+                  <th className="px-3 py-2 font-medium">{t("compare.metric")}</th>
+                  {compared.map((m) => (
+                    <th key={matchKey(m)} className="px-3 py-2 font-medium">
+                      <div className="flex items-start justify-between gap-2">
+                        <span>
+                          {m.motor.name}
+                          <span className="block font-normal text-muted-foreground">{m.gearbox.name}</span>
+                        </span>
+                        <button type="button" className="text-muted-foreground" onClick={() => toggleCompare(matchKey(m))}>
+                          <X className="size-3.5" />
+                        </button>
+                      </div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {(
+                  [
+                    ["i", (m) => String(m.gearbox.ratio)],
+                    [t("compare.drive"), (m) => m.inverter.name],
+                    [t("results.outCont"), (m) => `${formatNm(m.outputContNm)} N·m`],
+                    [t("results.outPeak"), (m) => `${formatNm(m.outputPeakNm)} N·m`],
+                    [t("results.cont"), (m) => `${(m.utilizationCont * 100).toFixed(0)}%`],
+                    [t("results.peakUtil"), (m) => `${(m.utilizationPeak * 100).toFixed(0)}%`],
+                    [t("results.fbAvail"), (m) => m.serviceFactorAvail.toFixed(2)],
+                    [t("results.jRatio"), (m) => `${m.inertiaRatio.toFixed(1)} : 1`],
+                    [t("results.driveUtil"), (m) => `${(m.invUtilCont * 100).toFixed(0)}% / ${(m.invUtilPeak * 100).toFixed(0)}%`],
+                  ] as [string, (m: (typeof compared)[number]) => string][]
+                ).map(([label, val]) => (
+                  <tr key={label} className="border-t border-border">
+                    <td className="px-3 py-2 text-xs text-muted-foreground">{label}</td>
+                    {compared.map((m) => (
+                      <td key={matchKey(m) + label} className="px-3 py-2 font-mono text-xs tabular-nums">
+                        {val(m)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {compared.length >= 2 && (
+              <CompareThermalCharts result={result} matches={compared} cycle={cycle} />
+            )}
+          </div>
+        )}
 
         {matches.length === 0 ? (
           <div className="rounded-[var(--radius-md)] border border-border px-4 py-8 text-center text-sm text-muted-foreground">
@@ -205,21 +347,36 @@ export function ResultsPanel() {
         ) : (
           <ul className="flex flex-col gap-2">
             {matches.map((m) => {
-              const id = `${m.motor.id}-${m.gearbox.id}`;
+              const id = matchKey(m);
               const open = selectedMatchId === id;
+              const picked = compareIds.includes(id);
               return (
                 <li
                   key={id}
                   className={cn(
                     "rounded-[var(--radius-md)] border bg-card",
                     open ? "border-primary/35" : "border-border",
+                    picked && "ring-1 ring-accent/50",
                   )}
                 >
-                  <button
-                    type="button"
-                    className="flex w-full flex-col gap-2 px-3 py-3 text-left sm:flex-row sm:items-center sm:justify-between"
-                    onClick={() => setSelectedMatch(open ? null : id)}
-                  >
+                  <div className="flex items-stretch">
+                    <button
+                      type="button"
+                      className={cn(
+                        "flex w-10 shrink-0 items-center justify-center border-r border-border text-muted-foreground hover:text-foreground",
+                        picked && "bg-muted text-foreground",
+                      )}
+                      aria-pressed={picked}
+                      aria-label={picked ? t("compare.remove") : t("compare.add")}
+                      onClick={() => toggleCompare(id)}
+                    >
+                      {picked ? <Check className="size-4" /> : <Plus className="size-4" />}
+                    </button>
+                    <button
+                      type="button"
+                      className="flex min-w-0 flex-1 flex-col gap-2 px-3 py-3 text-left sm:flex-row sm:items-center sm:justify-between"
+                      onClick={() => setSelectedMatch(open ? null : id)}
+                    >
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-sm font-medium">{m.motor.name}</span>
@@ -237,7 +394,8 @@ export function ResultsPanel() {
                     <div className="sm:w-48">
                       <UtilBar value={m.utilizationCont} label={t("results.cont")} />
                     </div>
-                  </button>
+                    </button>
+                  </div>
                   {open && (
                     <div className="border-t border-border px-3 py-3">
                       <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">

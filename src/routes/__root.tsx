@@ -3,7 +3,7 @@ import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import appCss from "../styles.css?url";
 
-const APP_NAME = "Axion · Drive sizing";
+const APP_NAME = "ABECE Internal tools";
 
 export const Route = createRootRoute({
   head: () => ({

@@ -53,15 +53,17 @@ function ChartFrame({
   curves,
   points,
   tall,
+  roomy,
 }: {
   title: string;
   xLabel: string;
   yLabel: string;
   nMax: number;
   tMax: number;
-  curves: { pts: CurvePt[]; color: string; width: number; label: string }[];
+  curves: { pts: CurvePt[]; color: string; width: number; label: string; dash?: string }[];
   points: OpPt[];
   tall?: boolean;
+  roomy?: boolean;
 }) {
   const t = useT();
   const [open, setOpen] = useState(false);
@@ -91,7 +93,11 @@ function ChartFrame({
   const plot = (
     <svg
       viewBox={`0 0 ${W} ${H}`}
-      className="h-48 w-full min-w-[18rem] cursor-zoom-in"
+      className={
+        roomy
+          ? "h-64 w-full min-w-[18rem] cursor-zoom-in min-[1600px]:h-[28rem] min-[1921px]:h-[34rem]"
+          : "h-48 w-full min-w-[18rem] cursor-zoom-in"
+      }
       role="img"
       aria-label={title}
     >
@@ -126,9 +132,17 @@ function ChartFrame({
       <line x1={padL} y1={padT + innerH} x2={W - padR} y2={padT + innerH} stroke="var(--color-foreground)" strokeWidth="1.2" />
       <line x1={padL} y1={padT} x2={padL} y2={padT + innerH} stroke="var(--color-foreground)" strokeWidth="1.2" />
       {curves.map((c) => (
-        <path key={c.label} d={polyline(c.pts, x, y)} fill="none" stroke={c.color} strokeWidth={c.width} />
+        <path
+          key={c.label}
+          d={polyline(c.pts, x, y)}
+          fill="none"
+          stroke={c.color}
+          strokeWidth={c.width}
+          strokeDasharray={c.dash}
+        />
       ))}
       {curves.map((c) => {
+        if (roomy) return null;
         const last = c.pts[c.pts.length - 1];
         if (!last) return null;
         return (
@@ -143,12 +157,12 @@ function ChartFrame({
             cx={x(Math.min(p.n, xn))}
             cy={y(Math.max(p.t, 0))}
             r={p.kind === "s1" ? 5.5 : 4}
-            fill={p.kind === "s1" ? "#e8a35a" : p.kind === "peak" ? "#7ec8c3" : "#b6a4de"}
-            stroke="#0c0e11"
-            strokeWidth="1"
+            fill={p.color ?? (p.kind === "s1" ? "#e8a35a" : p.kind === "peak" ? "#7ec8c3" : "#b6a4de")}
+            stroke="var(--color-background)"
+            strokeWidth="1.4"
           />
-          <text x={x(Math.min(p.n, xn)) + 8} y={y(Math.max(p.t, 0)) - 6} fill="var(--color-foreground)" fontSize="10">
-            {p.label}
+          <text x={x(Math.min(p.n, xn)) + 8} y={y(Math.max(p.t, 0)) - 6} fill={p.color ?? "var(--color-foreground)"} fontSize="10">
+            {p.tag ?? p.label}
           </text>
         </g>
       ))}
@@ -327,12 +341,12 @@ function PopupChart(props: {
               cx={x(Math.min(p.n, xn))}
               cy={y(Math.max(p.t, 0))}
               r={p.kind === "s1" ? 6 : 5}
-              fill={p.kind === "s1" ? "#e8a35a" : p.kind === "peak" ? "#7ec8c3" : "#b6a4de"}
-              stroke="#0c0e11"
-              strokeWidth="1"
+              fill={p.color ?? (p.kind === "s1" ? "#e8a35a" : p.kind === "peak" ? "#7ec8c3" : "#b6a4de")}
+              stroke="var(--color-background)"
+              strokeWidth="1.5"
             />
-            <text x={x(Math.min(p.n, xn)) + 8} y={y(Math.max(p.t, 0)) - 6} fill="var(--color-foreground)" fontSize="11">
-              {p.label}
+            <text x={x(Math.min(p.n, xn)) + 8} y={y(Math.max(p.t, 0)) - 6} fill={p.color ?? "var(--color-foreground)"} fontSize="11">
+              {p.tag ?? p.label}
             </text>
           </g>
         ))}
@@ -467,6 +481,256 @@ export function ThermalCharts({
               { pts: gTh, color: "#e07a5f", width: 1.6, label: t("thermal.atSpeed") },
             ]}
             points={ops.gearbox}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+const FAMILIES = [
+  {
+    motorPeak: "#7ee8df",
+    motorS1: "#2a9a8e",
+    invPeak: "#9ec4ff",
+    invCont: "#3d6fb8",
+    gbRated: "#5fd0c6",
+    gbTh: "#1d7a70",
+  },
+  {
+    motorPeak: "#ffb08a",
+    motorS1: "#d4542a",
+    invPeak: "#ffd27a",
+    invCont: "#c48420",
+    gbRated: "#f09a68",
+    gbTh: "#b03d1c",
+  },
+  {
+    motorPeak: "#d2b4ff",
+    motorS1: "#6d48b8",
+    invPeak: "#f3b4dc",
+    invCont: "#a24e8c",
+    gbRated: "#b898e8",
+    gbTh: "#53388f",
+  },
+  {
+    motorPeak: "#e8d56a",
+    motorS1: "#8a9a32",
+    invPeak: "#b6e08a",
+    invCont: "#3f7a38",
+    gbRated: "#c9c056",
+    gbTh: "#5f6e20",
+  },
+] as const;
+
+export function CompareThermalCharts({
+  result,
+  matches,
+  cycle,
+}: {
+  result: SizingResult;
+  matches: MatchScore[];
+  cycle?: MotionCycle;
+}) {
+  const t = useT();
+  const [customOn, setCustomOn] = useState(false);
+  const [customName, setCustomName] = useState("Reference");
+  const [customN, setCustomN] = useState(3000);
+  const [customTc, setCustomTc] = useState(2);
+  const [customTp, setCustomTp] = useState(6);
+  if (matches.length < 2) return null;
+
+  const packs = matches.map((match, i) => {
+    const family = FAMILIES[i % FAMILIES.length];
+    const letter = String.fromCharCode(65 + i);
+    const ops = operatingPoints(result, match, cycle);
+    const inv = inverterLimitCurves(match.motor, match.inverter);
+    const tagPt = (o: OpPt, color: string): OpPt => ({
+      ...o,
+      id: `${match.motor.id}-${match.gearbox.id}-${o.id}`,
+      color,
+      tag: `${letter} · ${o.kind === "s1" ? "avg" : o.kind === "peak" ? "peak" : "hold"}`,
+      label: `${letter} · ${match.motor.name} ${o.label}`,
+    });
+    return {
+      match,
+      family,
+      letter,
+      color: family.motorS1,
+      mPeak: motorPeakCurve(match.motor),
+      mS1: motorS1Curve(match.motor),
+      invPeak: inv.peak,
+      invCont: inv.cont,
+      gTh: gearboxThermalCurve(match.gearbox),
+      gRated: gearboxRatedLine(match.gearbox),
+      ops: {
+        motor: ops.motor.map((o) =>
+          tagPt(o, o.kind === "peak" ? family.motorPeak : o.kind === "s1" ? family.motorS1 : family.gbTh),
+        ),
+        gearbox: ops.gearbox.map((o) =>
+          tagPt(o, o.kind === "peak" ? family.gbRated : o.kind === "s1" ? family.gbTh : family.invCont),
+        ),
+      },
+    };
+  });
+
+  const customPeak = customOn
+    ? motorPeakCurve({ ratedSpeedRpm: Math.max(customN, 1), peakTorqueNm: Math.max(customTp, 0) })
+    : [];
+  const customS1 = customOn
+    ? motorS1Curve({ ratedSpeedRpm: Math.max(customN, 1), contTorqueNm: Math.max(customTc, 0) })
+    : [];
+
+  const motorNMax = Math.max(
+    ...packs.map((p) => p.match.motor.ratedSpeedRpm * 1.2),
+    customOn ? customN * 1.2 : 0,
+    1,
+  );
+  const motorTMax =
+    Math.max(
+      ...packs.map((p) => p.match.motor.peakTorqueNm),
+      ...packs.flatMap((p) => p.invPeak.map((pt) => pt.t)),
+      ...packs.flatMap((p) => p.invCont.map((pt) => pt.t)),
+      ...packs.flatMap((p) => p.ops.motor.map((o) => o.t)),
+      customOn ? customTp : 0,
+      1,
+    ) * 1.15;
+  const gbPacks = packs.filter((p) => p.match.gearbox.kind !== "direct");
+  const gbNMax = Math.max(...gbPacks.map((p) => p.match.gearbox.maxInputRpm), 1);
+  const gbTMax =
+    Math.max(...gbPacks.map((p) => p.match.gearbox.ratedOutputNm), result.peakTorqueNm, 1) * 1.1;
+
+  return (
+    <div className="border-t border-border px-3 py-3">
+      <p className="mb-2 text-xs text-muted-foreground">{t("compare.charts")}</p>
+      <ul className="mb-3 grid gap-2 sm:grid-cols-2">
+        {packs.map((p) => (
+          <li
+            key={`${p.match.motor.id}-${p.match.gearbox.id}`}
+            className="rounded-[var(--radius-md)] border border-border bg-card px-3 py-2"
+            style={{ borderColor: p.family.motorS1 }}
+          >
+            <div className="flex items-center gap-2 text-sm">
+              <span
+                className="grid size-6 place-items-center rounded-[4px] text-xs font-medium"
+                style={{ background: p.family.motorS1, color: "#0c0e11" }}
+              >
+                {p.letter}
+              </span>
+              <span className="min-w-0 leading-snug">
+                {p.match.motor.name}
+                <span className="text-muted-foreground"> + </span>
+                {p.match.gearbox.name}
+                <span className="text-muted-foreground"> + </span>
+                {p.match.inverter.name}
+              </span>
+            </div>
+            <ul className="mt-2 space-y-1 font-mono text-[11px] tabular-nums text-muted-foreground">
+              {p.ops.motor.map((o) => (
+                <li key={o.id} className="flex items-center gap-2">
+                  <span className="size-2 shrink-0 rounded-full" style={{ background: o.color }} />
+                  <span className="w-10 text-foreground">{o.kind === "s1" ? "avg" : o.kind}</span>
+                  <span>
+                    {fmtN(o.n)} 1/min · {fmtT(o.t)} N·m
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))}
+      </ul>
+      <label className="mb-3 flex items-center gap-2 text-sm">
+        <input type="checkbox" checked={customOn} onChange={(e) => setCustomOn(e.target.checked)} />
+        {t("compare.custom")}
+      </label>
+      {customOn && (
+        <div className="mb-3 grid gap-2 rounded-[var(--radius-md)] border border-dashed border-border px-3 py-2 sm:grid-cols-4">
+          <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">
+            {t("compare.customName")}
+            <input
+              className="h-8 rounded-[var(--radius-sm)] border border-border bg-input px-2 text-sm text-foreground"
+              value={customName}
+              onChange={(e) => setCustomName(e.target.value)}
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">
+            {t("compare.customN")} [1/min]
+            <input
+              type="number"
+              className="h-8 rounded-[var(--radius-sm)] border border-border bg-input px-2 font-mono text-sm text-foreground"
+              value={customN}
+              onChange={(e) => setCustomN(Number(e.target.value))}
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">
+            {t("compare.customTc")} [N·m]
+            <input
+              type="number"
+              className="h-8 rounded-[var(--radius-sm)] border border-border bg-input px-2 font-mono text-sm text-foreground"
+              value={customTc}
+              onChange={(e) => setCustomTc(Number(e.target.value))}
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">
+            {t("compare.customTp")} [N·m]
+            <input
+              type="number"
+              className="h-8 rounded-[var(--radius-sm)] border border-border bg-input px-2 font-mono text-sm text-foreground"
+              value={customTp}
+              onChange={(e) => setCustomTp(Number(e.target.value))}
+            />
+          </label>
+        </div>
+      )}
+      <div className="grid grid-cols-1 gap-3 min-[1921px]:gap-5">
+        <ChartFrame
+          title={t("thermal.motor")}
+          xLabel={t("thermal.nMot")}
+          yLabel={t("thermal.tMot")}
+          nMax={motorNMax}
+          tMax={motorTMax}
+          roomy
+          curves={[
+            ...packs.flatMap((p) => [
+            { pts: p.mPeak, color: p.family.motorPeak, width: 1.5, label: `${p.letter} ${t("thermal.burstLbl")}` },
+            { pts: p.mS1, color: p.family.motorS1, width: 2, label: `${p.letter} ${t("thermal.alldayLbl")}` },
+            {
+              pts: p.invPeak,
+              color: p.family.invPeak,
+              width: 1.3,
+              dash: "5 3",
+              label: `${p.letter} ${t("thermal.invPeak")}`,
+            },
+            {
+              pts: p.invCont,
+              color: p.family.invCont,
+              width: 1.5,
+              dash: "2 3",
+              label: `${p.letter} ${t("thermal.invCont")}`,
+            },
+          ]),
+            ...(customOn
+              ? [
+                  { pts: customPeak, color: "#e6e8eb", width: 1.6, dash: "6 3", label: `${customName} peak` },
+                  { pts: customS1, color: "#9aa3ad", width: 2, dash: "2 2", label: `${customName} S1` },
+                ]
+              : []),
+          ]}
+          points={packs.flatMap((p) => p.ops.motor)}
+        />
+        {gbPacks.length > 0 && (
+          <ChartFrame
+            title={t("thermal.gear")}
+            xLabel={t("thermal.nIn")}
+            yLabel={t("thermal.tOut")}
+            nMax={gbNMax}
+            tMax={gbTMax}
+            roomy
+            curves={gbPacks.flatMap((p) => [
+              { pts: p.gRated, color: p.family.gbRated, width: 1.4, label: `${p.match.gearbox.name} ${t("thermal.rated")}` },
+              { pts: p.gTh, color: p.family.gbTh, width: 1.8, label: `${p.match.gearbox.name} ${t("thermal.atSpeed")}` },
+            ])}
+            points={gbPacks.flatMap((p) => p.ops.gearbox)}
           />
         )}
       </div>

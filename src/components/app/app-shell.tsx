@@ -1,16 +1,25 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { ApplicationPicker } from "@/components/app/application-picker";
-import { CatalogTables } from "@/components/app/catalog-tables";
 import { DisclaimerBanner } from "@/components/app/disclaimer-banner";
-import { InputPanel } from "@/components/app/input-panel";
 import { ProjectBar } from "@/components/app/project-bar";
-import { ResultsPanel } from "@/components/app/results-panel";
 import { cn } from "@/lib/cn";
 import { Moon, Sun } from "lucide-react";
 import { useLocale, useT } from "@/lib/i18n/locale";
 import { useTheme } from "@/lib/theme";
 import { loadDraft, saveDraft } from "@/lib/sizing/draft";
+import { AxionMark } from "@/components/brand/axion-mark";
+import { hubHref } from "@/lib/tools";
 import { useSizingStore } from "@/store/sizing-store";
+
+const InputPanel = lazy(() =>
+  import("@/components/app/input-panel").then((m) => ({ default: m.InputPanel })),
+);
+const ResultsPanel = lazy(() =>
+  import("@/components/app/results-panel").then((m) => ({ default: m.ResultsPanel })),
+);
+const CatalogTables = lazy(() =>
+  import("@/components/app/catalog-tables").then((m) => ({ default: m.CatalogTables })),
+);
 
 const TAB_IDS = ["app", "inputs", "results", "catalog"] as const;
 type TabId = (typeof TAB_IDS)[number];
@@ -25,9 +34,11 @@ export function AppShell() {
   const loadProject = useSizingStore((s) => s.loadProject);
 
   useEffect(() => {
-    const draft = loadDraft();
-    if (draft) loadProject(draft);
     let timer = 0;
+    const boot = window.setTimeout(() => {
+      const draft = loadDraft();
+      if (draft) loadProject(draft);
+    }, 0);
     const unsub = useSizingStore.subscribe((s) => {
       window.clearTimeout(timer);
       timer = window.setTimeout(() => {
@@ -42,9 +53,10 @@ export function AppShell() {
           inverterId: s.inverterId,
           hoursPerDay: s.hoursPerDay,
         });
-      }, 300);
+      }, 400);
     });
     return () => {
+      window.clearTimeout(boot);
       window.clearTimeout(timer);
       unsub();
     };
@@ -52,14 +64,22 @@ export function AppShell() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <DisclaimerBanner />
       <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur-sm">
         <div className="mx-auto flex max-w-[1100px] items-center gap-2 px-3 py-2 sm:gap-3 sm:px-6 sm:py-3">
           <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <AxionMark className="size-8" />
+              <div className="min-w-0">
             <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground sm:text-xs">
+              <a href={hubHref()} className="hover:text-foreground">
+                {t("hub.short")}
+              </a>
+              <span className="mx-1.5 text-border">/</span>
               Axion
             </div>
             <h1 className="truncate text-xs font-medium tracking-tight sm:text-base">{t("brand.tag")}</h1>
+              </div>
+            </div>
           </div>
           <div className="flex h-8 shrink-0 items-center gap-1.5">
             <div
@@ -119,6 +139,7 @@ export function AppShell() {
       </header>
 
       <main className="mx-auto max-w-[1100px] px-4 py-6 sm:px-6">
+        <Suspense fallback={<p className="text-sm text-muted-foreground">…</p>}>
         {tab === "app" && <ApplicationPicker onPicked={() => setTab("inputs")} />}
         {tab === "inputs" && (
           <section className="rounded-[var(--radius-lg)] border border-border bg-card p-4 sm:p-5">
@@ -135,10 +156,12 @@ export function AppShell() {
             <CatalogTables />
           </section>
         )}
+        </Suspense>
       </main>
 
-      <footer className="mx-auto max-w-[1100px] px-4 pb-8 text-xs text-muted-foreground sm:px-6">
-        {t("footer.legal")}
+      <footer className="mx-auto max-w-[1100px] px-4 pb-8 text-xs leading-relaxed text-muted-foreground sm:px-6">
+        <DisclaimerBanner />
+        <p className="mt-2">{t("footer.legal")}</p>
         <div className="mt-3 font-mono text-[10px] tracking-wide text-muted-foreground/50">
           {typeof __AXION_SHA__ === "string" && __AXION_SHA__ ? __AXION_SHA__.slice(0, 7) : "local"}
         </div>

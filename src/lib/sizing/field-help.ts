@@ -48,7 +48,7 @@ export const FIELD_HELP: Record<string, string> = {
   flowM3s: "Volumetric flow in the unit shown. Fluid power ≈ Δp × Q.",
   headM: "Pump head in metres of fluid. Pressure ≈ ρ g H.",
   dutyType:
-    "IEC thermal duty. S1 is continuous, S3 is intermittent, S5 is intermittent with braking. Changes how hard RMS is interpreted.",
+    "IEC 60034-1 thermal duty. S1 = run all day. S3 = start–run–rest, no electric brake. S5 = same cycle but the drive brakes electrically (resistor or regen) — extra heat in the motor. A holding/parking brake on the shaft is separate.",
   orientation:
     "How the axis sits. Vertical puts full gravity on raise, lower and hold. Inclined uses the angle field. Horizontal ignores lift gravity.",
   mechanism: "How force becomes shaft torque on a lift: screw lead, belt pulley radius, or rack pinion radius.",

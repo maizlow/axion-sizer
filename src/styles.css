@@ -24,6 +24,7 @@
   --color-ok: #7d9b74;
   --color-warn: #c4a15a;
   --color-danger: #c2756b;
+  --color-brand: #2fd3b6;
   --radius-xs: 4px;
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -62,11 +63,17 @@
     --color-ok: #3d6b3a;
     --color-warn: #8a6a1f;
     --color-danger: #9a3f36;
+    --color-brand: #0b8f78;
   }
 
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
+  }
+  select,
+  option {
+    background-color: var(--color-input);
+    color: var(--color-foreground);
   }
   h1,
   h2,
