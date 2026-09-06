@@ -62,6 +62,15 @@ function Curve({ pass, envelope }: { pass: number[]; envelope: EnvelopeRow[] }) 
   );
 }
 
+function FieldLabel({ text, tip, tipLabel }: { text: string; tip?: string; tipLabel?: string }) {
+  return (
+    <div className="mb-1 flex h-5 items-center gap-1 text-[11px] text-muted-foreground">
+      <span>{text}</span>
+      {tip ? <FieldTip text={tip} label={tipLabel ?? text} /> : null}
+    </div>
+  );
+}
+
 export function GraniaShell() {
   const t = useT();
   const locale = useLocale((s) => s.locale);
@@ -197,7 +206,7 @@ export function GraniaShell() {
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-[1100px] flex-col gap-6 px-4 py-6 sm:px-6">
+      <main className="mx-auto flex w-full max-w-[1120px] flex-col gap-6 px-4 py-6 sm:px-6">
         <section className="grid gap-3 sm:grid-cols-3">
           <div className={cn("rounded-[var(--radius-md)] border px-4 py-3", hOk ? "border-ok/40" : "border-warn/50")}>
             <div className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
@@ -301,21 +310,25 @@ export function GraniaShell() {
         </section>
 
         <section className="rounded-[var(--radius-lg)] border border-border bg-card p-4 sm:p-5">
-          <h2 className="text-sm font-medium">{t("grania.plot")}</h2>
-          <p className="mt-1 text-xs text-muted-foreground">{t("grania.plotHint")}</p>
-          <button
-            type="button"
-            className="mt-2 h-9 rounded-[var(--radius-sm)] border border-border px-3 text-sm"
-            onClick={() => {
-              try {
-                downloadSieveReport(sands, envelope);
-              } catch {
-                window.alert("Could not build the PDF.");
-              }
-            }}
-          >
-            {t("grania.pdf")}
-          </button>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-medium">{t("grania.plot")}</h2>
+              <p className="mt-1 text-xs text-muted-foreground">{t("grania.plotHint")}</p>
+            </div>
+            <button
+              type="button"
+              className="h-9 shrink-0 rounded-[var(--radius-sm)] border border-border px-3 text-sm"
+              onClick={() => {
+                try {
+                  downloadSieveReport(sands, envelope);
+                } catch {
+                  window.alert("Could not build the PDF.");
+                }
+              }}
+            >
+              {t("grania.pdf")}
+            </button>
+          </div>
           <Curve pass={mix.passPct} envelope={envelope} />
           <h3 className="mt-4 text-sm font-medium">{t("grania.spec")}</h3>
           <p className="mt-1 text-xs text-muted-foreground">{t("grania.specHint")}</p>
@@ -349,33 +362,50 @@ export function GraniaShell() {
           <section key={s.id} className="rounded-[var(--radius-lg)] border border-border bg-card p-4 sm:p-5">
             <h2 className="text-sm font-medium">{s.name}</h2>
             <p className="mt-1 text-xs text-muted-foreground">{t("grania.residueHint")}</p>
-            <label className="mt-2 flex max-w-[12rem] flex-col gap-1 text-[11px] text-muted-foreground">
-              {t("grania.sandMoist")} {s.name} [%]{" "}
-              <FieldTip text={t("help.graniaMoist")} label={t("grania.sandMoist")} />
+            <label className="mt-3 flex max-w-[16rem] flex-col text-[11px] text-muted-foreground">
+              <FieldLabel text={`${t("grania.sandMoist")} ${s.name} [%]`} tip={t("help.graniaMoist")} tipLabel={t("grania.sandMoist")} />
               <input
                 type="number"
-                className="h-8 rounded-[var(--radius-sm)] border border-border bg-input px-2 font-mono text-sm text-foreground"
+                className="h-9 w-full rounded-[var(--radius-sm)] border border-border bg-input px-2 font-mono text-sm text-foreground"
                 value={s.moisturePct}
                 onChange={(e) => patch(s.id, { moisturePct: Number(e.target.value) })}
               />
             </label>
-            <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6 lg:grid-cols-11">
-              {["pan", ...SIEVE_MM.map(String)].map((label, i) => (
-                <label key={label} className="flex flex-col gap-1 text-[11px] text-muted-foreground">
-                  {label === "pan" ? t("grania.pan") : `${label} mm`}{" "}
-                  <FieldTip text={i === 0 ? t("help.graniaPan") : t("help.graniaSieve")} label={label} />
-                  <input
-                    type="number"
-                    className="h-8 rounded-[var(--radius-sm)] border border-border bg-input px-2 font-mono text-sm text-foreground"
-                    value={s.residueG[i] ?? 0}
-                    onChange={(e) => setRes(s.id, i, Number(e.target.value))}
-                  />
-                  <span className="font-mono text-[10px] tabular-nums">
-                    {lab.retPct[i]?.toFixed(1) ?? "0.0"} %
-                    {i > 0 ? ` · ${lab.passPct[i]?.toFixed(1) ?? "0.0"} % pass` : ""}
-                  </span>
-                </label>
-              ))}
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full min-w-[36rem] text-left text-sm">
+                <thead className="text-xs text-muted-foreground">
+                  <tr>
+                    <th className="py-1 font-medium">{t("grania.sieve")}</th>
+                    <th className="py-1 font-medium">{t("grania.grams")}</th>
+                    <th className="py-1 font-medium">{t("grania.ret")}</th>
+                    <th className="py-1 font-medium">{t("grania.pass")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {["pan", ...SIEVE_MM.map(String)].map((label, i) => (
+                    <tr key={label} className="border-t border-border">
+                      <td className="py-1.5">
+                        <span className="inline-flex items-center gap-1">
+                          {label === "pan" ? t("grania.pan") : `${label} mm`}
+                          <FieldTip text={i === 0 ? t("help.graniaPan") : t("help.graniaSieve")} label={label} />
+                        </span>
+                      </td>
+                      <td className="py-1.5">
+                        <input
+                          type="number"
+                          className="h-8 w-24 rounded-[var(--radius-sm)] border border-border bg-input px-2 font-mono text-sm text-foreground"
+                          value={s.residueG[i] ?? 0}
+                          onChange={(e) => setRes(s.id, i, Number(e.target.value))}
+                        />
+                      </td>
+                      <td className="py-1.5 font-mono text-xs tabular-nums text-muted-foreground">{lab.retPct[i]?.toFixed(1) ?? "0.0"} %</td>
+                      <td className="py-1.5 font-mono text-xs tabular-nums text-muted-foreground">
+                        {i === 0 ? "—" : `${lab.passPct[i]?.toFixed(1) ?? "0.0"} %`}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </section>
           );
@@ -384,49 +414,47 @@ export function GraniaShell() {
         <section className="rounded-[var(--radius-lg)] border border-border bg-card p-4 sm:p-5">
           <h2 className="text-sm font-medium">{t("grania.recipe")}</h2>
           <p className="mt-1 text-xs text-muted-foreground">{t("grania.recipeHint")}</p>
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">
-              {t("grania.cement")} [kg] <FieldTip text={t("help.graniaCement")} label={t("grania.cement")} />
-              <input type="number" className="h-8 rounded-[var(--radius-sm)] border border-border bg-input px-2 font-mono text-sm text-foreground" value={cementKg} onChange={(e) => setCementKg(Number(e.target.value))} />
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+            <label className="block min-w-0">
+              <FieldLabel text={`${t("grania.cement")} [kg]`} tip={t("help.graniaCement")} tipLabel={t("grania.cement")} />
+              <input type="number" className="h-9 w-full rounded-[var(--radius-sm)] border border-border bg-input px-2 font-mono text-sm text-foreground" value={cementKg} onChange={(e) => setCementKg(Number(e.target.value))} />
             </label>
-            <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">
-              {t("grania.sandKg")} [kg] <FieldTip text={t("help.graniaSandKg")} label={t("grania.sandKg")} />
-              <input type="number" className="h-8 rounded-[var(--radius-sm)] border border-border bg-input px-2 font-mono text-sm text-foreground" value={sandKg} onChange={(e) => setSandKg(Number(e.target.value))} />
+            <label className="block min-w-0">
+              <FieldLabel text={`${t("grania.sandKg")} [kg]`} tip={t("help.graniaSandKg")} tipLabel={t("grania.sandKg")} />
+              <input type="number" className="h-9 w-full rounded-[var(--radius-sm)] border border-border bg-input px-2 font-mono text-sm text-foreground" value={sandKg} onChange={(e) => setSandKg(Number(e.target.value))} />
             </label>
-            <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">
-              {t("grania.vct")} <FieldTip text={t("help.graniaVct")} label={t("grania.vct")} />
-              <input type="number" step="0.01" className="h-8 rounded-[var(--radius-sm)] border border-border bg-input px-2 font-mono text-sm text-foreground" value={targetWc} onChange={(e) => setTargetWc(Number(e.target.value))} />
+            <label className="block min-w-0">
+              <FieldLabel text={t("grania.vct")} tip={t("help.graniaVct")} tipLabel={t("grania.vct")} />
+              <input type="number" step="0.01" className="h-9 w-full rounded-[var(--radius-sm)] border border-border bg-input px-2 font-mono text-sm text-foreground" value={targetWc} onChange={(e) => setTargetWc(Number(e.target.value))} />
             </label>
           </div>
-          <ul className="mt-2 space-y-0.5 text-xs text-muted-foreground">
+          <div className="mt-3 rounded-[var(--radius-sm)] border border-border px-3 py-2 text-xs text-muted-foreground">
             {sands.filter((s) => s.onSite).map((s) => (
-              <li key={s.id}>
+              <div key={s.id}>
                 {s.name}: {(sandKg * (Number(s.blendPct) || 0) / 100).toFixed(1)} kg
-                <span>
-                  {" "}
-                  ({s.blendPct} %, {t("grania.sandMoist")} {(Number(s.moisturePct) || 0).toFixed(1)} %)
-                </span>
-              </li>
+                {" · "}
+                {s.blendPct} %{" · "}
+                {t("grania.sandMoist")} {(Number(s.moisturePct) || 0).toFixed(1)} %
+              </div>
             ))}
-          </ul>
-          <p className="mt-1 text-xs text-muted-foreground">{t("grania.recipeBlend")}</p>
-          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+          </div>
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
             {([0, 1, 2] as const).map((n) => (
-              <div key={n} className="grid grid-cols-2 gap-2">
-                <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">
-                  {t("grania.addN", { n: n + 1 })} [kg] <FieldTip text={t("help.graniaAdd")} label={t("grania.addN", { n: n + 1 })} />
+              <div key={n} className="grid grid-cols-2 gap-2 rounded-[var(--radius-sm)] border border-border p-3">
+                <label className="block min-w-0">
+                  <FieldLabel text={`${t("grania.addN", { n: n + 1 })} [kg]`} tip={t("help.graniaAdd")} tipLabel={t("grania.addN", { n: n + 1 })} />
                   <input
                     type="number"
-                    className="h-8 rounded-[var(--radius-sm)] border border-border bg-input px-2 font-mono text-sm text-foreground"
+                    className="h-9 w-full rounded-[var(--radius-sm)] border border-border bg-input px-2 font-mono text-sm text-foreground"
                     value={adds[n]}
                     onChange={(e) => setAdds((a) => a.map((v, i) => (i === n ? Number(e.target.value) : v)) as [number, number, number])}
                   />
                 </label>
-                <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">
-                  {t("grania.addWater")} [%]
+                <label className="block min-w-0">
+                  <FieldLabel text={`${t("grania.addWater")} [%]`} />
                   <input
                     type="number"
-                    className="h-8 rounded-[var(--radius-sm)] border border-border bg-input px-2 font-mono text-sm text-foreground"
+                    className="h-9 w-full rounded-[var(--radius-sm)] border border-border bg-input px-2 font-mono text-sm text-foreground"
                     value={addW[n]}
                     onChange={(e) => setAddW((a) => a.map((v, i) => (i === n ? Number(e.target.value) : v)) as [number, number, number])}
                   />
@@ -434,38 +462,38 @@ export function GraniaShell() {
               </div>
             ))}
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-            <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">
-              {t("grania.pigment")} [kg] <FieldTip text={t("help.graniaPigment")} label={t("grania.pigment")} />
-              <input type="number" className="h-8 rounded-[var(--radius-sm)] border border-border bg-input px-2 font-mono text-sm text-foreground" value={pigmentKg} onChange={(e) => setPigmentKg(Number(e.target.value))} />
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+            <label className="block min-w-0">
+              <FieldLabel text={`${t("grania.pigment")} [kg]`} tip={t("help.graniaPigment")} tipLabel={t("grania.pigment")} />
+              <input type="number" className="h-9 w-full rounded-[var(--radius-sm)] border border-border bg-input px-2 font-mono text-sm text-foreground" value={pigmentKg} onChange={(e) => setPigmentKg(Number(e.target.value))} />
             </label>
-            <label className="flex items-end gap-2 pb-1 text-sm">
+            <label className="flex h-[3.25rem] items-end gap-2 pb-1 text-sm">
               <input type="checkbox" checked={pigmentWet} onChange={(e) => setPigmentWet(e.target.checked)} />
               {t("grania.pigmentWet")}
             </label>
-            <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">
-              {t("grania.pigmentWater")} [%]
+            <label className="block min-w-0">
+              <FieldLabel text={`${t("grania.pigmentWater")} [%]`} />
               <input
                 type="number"
                 disabled={!pigmentWet}
-                className="h-8 rounded-[var(--radius-sm)] border border-border bg-input px-2 font-mono text-sm text-foreground disabled:opacity-40"
+                className="h-9 w-full rounded-[var(--radius-sm)] border border-border bg-input px-2 font-mono text-sm text-foreground disabled:opacity-40"
                 value={pigmentWater}
                 onChange={(e) => setPigmentWater(Number(e.target.value))}
               />
             </label>
           </div>
-          <div className="mt-4 grid gap-2 sm:grid-cols-3">
-            <div className="rounded-[var(--radius-sm)] border border-border px-3 py-2">
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div className="rounded-[var(--radius-sm)] border border-border px-3 py-3">
               <div className="text-[11px] text-muted-foreground">{t("grania.addedWater")}</div>
-              <div className="font-mono text-lg tabular-nums">{recipe.addedWaterKg.toFixed(1)} kg</div>
+              <div className="mt-1 font-mono text-xl tabular-nums">{recipe.addedWaterKg.toFixed(1)} kg</div>
             </div>
-            <div className="rounded-[var(--radius-sm)] border border-border px-3 py-2">
+            <div className="rounded-[var(--radius-sm)] border border-border px-3 py-3">
               <div className="text-[11px] text-muted-foreground">{t("grania.actualWc")}</div>
-              <div className="font-mono text-lg tabular-nums">{recipe.actualWc.toFixed(3)}</div>
+              <div className="mt-1 font-mono text-xl tabular-nums">{recipe.actualWc.toFixed(3)}</div>
             </div>
-            <div className="rounded-[var(--radius-sm)] border px-3 py-2" style={recipe.moistureOk ? undefined : { borderColor: "#c45a4a" }}>
+            <div className="rounded-[var(--radius-sm)] border px-3 py-3" style={recipe.moistureOk ? undefined : { borderColor: "#c45a4a" }}>
               <div className="text-[11px] text-muted-foreground">{t("grania.moisture")}</div>
-              <div className="font-mono text-lg tabular-nums">{recipe.moisturePct.toFixed(1)} %</div>
+              <div className="mt-1 font-mono text-xl tabular-nums">{recipe.moisturePct.toFixed(1)} %</div>
               <div className="text-[11px] text-muted-foreground">
                 {TILE_MOISTURE_MIN}–{TILE_MOISTURE_MAX} %
               </div>
@@ -476,7 +504,8 @@ export function GraniaShell() {
               {t("grania.waterShort")}
             </p>
           )}
-          <p className="mt-2 text-xs text-muted-foreground">{t("grania.recipeNote")}</p>
+          <p className="mt-3 text-xs text-muted-foreground">{t("grania.recipeNote")}</p>
+        </section>
         </section>
       </main>
 
