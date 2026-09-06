@@ -34,6 +34,7 @@ export interface FieldDef {
   max: number;
   step: number;
   hint: string;
+  diagram?: string;
   visibleWhen?: { key: string; values: string[] };
 }
 
@@ -81,6 +82,8 @@ export interface Gearbox {
   massKg: number;
   family: string;
   size: string;
+  motorFrames: string[];
+  stages: 0 | 1 | 2;
 }
 
 export interface FormulaLine {
@@ -124,8 +127,29 @@ export interface MatchScore {
   torqueOk: boolean;
   gbOk: boolean;
   inertiaOk: boolean;
+  mountOk: boolean;
   score: number;
   reasons: string[];
+}
+
+export type AccelLaw = "linear" | "sin2" | "jerk";
+export type InclineDir = "uphill" | "downhill" | "level";
+
+export interface CycleSegment {
+  id: string;
+  inclineDir: InclineDir;
+  accelLaw: AccelLaw;
+  vStart: number;
+  vEnd: number;
+  accel: number;
+  time: number;
+  distanceMm: number;
+  positionMm: number;
+}
+
+export interface MotionCycle {
+  enabled: boolean;
+  segments: CycleSegment[];
 }
 
 export type Inputs = Record<string, number | string>;
