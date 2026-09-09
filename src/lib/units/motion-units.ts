@@ -125,8 +125,10 @@ export function encoderScale(opts: {
 export function fmt(n: number, digits = 6): string {
   if (!Number.isFinite(n)) return "—";
   const a = Math.abs(n);
+  if (a === 0) return "0";
   if (a >= 1000) return n.toFixed(2);
   if (a >= 1) return n.toPrecision(6).replace(/\.?0+$/, "");
+  if (a >= 1e-4) return n.toFixed(6).replace(/0+$/, "").replace(/\.$/, "");
   return n.toExponential(4);
 }
 

@@ -132,11 +132,11 @@ export function InertiaCalc() {
       <p className="mt-1 text-sm text-muted-foreground">{t("units.j.hint")}</p>
 
       {groups.map((g) => (
-        <div key={g.id} className="mt-4">
-          <h3 className="mb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+        <div key={g.id} className="mt-3">
+          <h3 className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
             {t(`units.j.group.${g.id}`)}
           </h3>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4 lg:grid-cols-5">
             {g.items.map((b) => {
               const on = kind === b.id;
               return (
@@ -146,14 +146,14 @@ export function InertiaCalc() {
                   onClick={() => setKind(b.id)}
                   aria-pressed={on}
                   className={cn(
-                    "min-h-11 rounded-[var(--radius-md)] border px-2 pb-2 pt-1 text-left transition-colors duration-150",
+                    "min-h-11 rounded-[var(--radius-md)] border px-2 py-1 text-left transition-colors duration-150",
                     on
                       ? "border-foreground bg-muted text-foreground"
                       : "border-border bg-background text-foreground hover:bg-muted/60",
                   )}
                 >
                   <InertiaGlyph kind={b.id} />
-                  <div className="mt-1 text-xs font-medium leading-snug">{t(`units.j.body.${b.id}`)}</div>
+                  <div className="mt-0.5 text-xs font-medium leading-snug">{t(`units.j.body.${b.id}`)}</div>
                   <div className="font-[family-name:var(--font-math)] text-[11px] italic text-muted-foreground">
                     {b.formula}
                   </div>
@@ -164,7 +164,7 @@ export function InertiaCalc() {
         </div>
       ))}
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+      <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
         <div className="rounded-[var(--radius-md)] border border-border bg-background px-2 py-1">
           <InertiaSketch kind={kind} vals={vals} offsetMm={offsetMm} />
           <p className="px-2 font-[family-name:var(--font-math)] text-sm italic text-muted-foreground">
@@ -172,10 +172,18 @@ export function InertiaCalc() {
             {offsetMm > 0 ? " + m d²" : ""}
           </p>
           <p className="px-2 pb-2 text-xs leading-relaxed text-muted-foreground">{t(`units.j.axis.${kind}`)}</p>
-          <p className="px-2 pb-2 text-[11px] text-muted-foreground">{t("units.j.legend")}</p>
         </div>
 
         <div className="flex flex-col gap-3">
+          <div className="rounded-[var(--radius-md)] border border-foreground/20 bg-muted/40 px-3 py-3">
+            <div className="text-[11px] text-muted-foreground">J</div>
+            <div className="font-mono text-2xl tabular-nums leading-tight">{fmt(si.j, 6)} kg·m²</div>
+            <div className="mt-1 font-mono text-xs tabular-nums text-muted-foreground">
+              {fmt(si.j * 1e4, 6)} kg·cm²
+              <span className="mx-1.5 text-border">·</span>
+              {fmt(si.jMot, 6)} kg·m² {t("units.j.jMot").toLowerCase()}
+            </div>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             {body.fields.map((key) => (
               <label key={key} className="flex flex-col gap-1 text-xs text-muted-foreground">
@@ -220,19 +228,18 @@ export function InertiaCalc() {
             </label>
           </div>
           {hollowBad && <p className="text-xs text-danger">{t("units.j.hollowWarn")}</p>}
-        </div>
-      </div>
-
-      <div className="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-4">
-        {INERTIA_OUT.map((u) => (
-          <div key={u.id} className="rounded-[var(--radius-md)] border border-border px-3 py-2">
-            <div className="text-[11px] text-muted-foreground">J [{u.label}]</div>
-            <div className="font-mono text-sm tabular-nums">{fmt(si.j * u.fromSi, 6)}</div>
+          <div className="grid grid-cols-2 gap-2">
+            {INERTIA_OUT.map((u) => (
+              <div key={u.id} className="rounded-[var(--radius-md)] border border-border px-3 py-2">
+                <div className="text-[11px] text-muted-foreground">J [{u.label}]</div>
+                <div className="font-mono text-sm tabular-nums">{fmt(si.j * u.fromSi, 6)}</div>
+              </div>
+            ))}
+            <div className="rounded-[var(--radius-md)] border border-border px-3 py-2">
+              <div className="text-[11px] text-muted-foreground">{t("units.j.jMot")}</div>
+              <div className="font-mono text-sm tabular-nums">{fmt(si.jMot, 6)} kg·m²</div>
+            </div>
           </div>
-        ))}
-        <div className="rounded-[var(--radius-md)] border border-border px-3 py-2">
-          <div className="text-[11px] text-muted-foreground">{t("units.j.jMot")}</div>
-          <div className="font-mono text-sm tabular-nums">{fmt(si.jMot, 6)} kg·m²</div>
         </div>
       </div>
 
