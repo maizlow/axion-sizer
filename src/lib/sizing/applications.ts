@@ -324,9 +324,19 @@ const EXTRA_GEARING: FieldDef[] = [
 ];
 
 for (const app of APPLICATIONS) {
+  const duty = app.selects.find((s) => s.key === "dutyType");
+  const edDef = duty?.defaultValue === "S1" ? 100 : 40;
+  const edField = num("edHour", "Operating ED", "% of hour", edDef, {
+    min: 5,
+    max: 100,
+    step: 5,
+    metricToSi: 0.01,
+    hint: "Minutes of this profile per hour. 40% = IEC S3-40. 100% = repeats all hour (S1). Peak torque is not reduced.",
+  });
   const i = app.fields.findIndex((f) => f.key === "safetyFactor");
-  if (i < 0) app.fields.push(...EXTRA_GEARING);
-  else app.fields.splice(i, 0, ...EXTRA_GEARING);
+  const insert = [...EXTRA_GEARING, edField];
+  if (i < 0) app.fields.push(...insert);
+  else app.fields.splice(i, 0, ...insert);
 }
 
 export function getApplication(id: ApplicationId): ApplicationDef {

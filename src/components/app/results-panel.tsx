@@ -130,6 +130,9 @@ export function ResultsPanel() {
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
         <Stat label={lifting ? t("results.raise") : t("results.steady")} value={formatNm(result.outputTorqueNm)} unit="N·m" />
         <Stat label={t("results.peak")} value={formatNm(result.peakTorqueNm)} unit="N·m" />
+        <Stat label={t("results.rms")} value={formatNm(result.rmsTorqueNm)} unit="N·m" />
+        <Stat label={t("results.thermalRms")} value={formatNm(result.thermalRmsNm)} unit="N·m" />
+        <Stat label={t("results.ed")} value={`${Math.round((result.edHour || 1) * 100)}`} unit="%" />
         {lifting && <Stat label={t("results.lower")} value={formatNm(result.loweringTorqueNm)} unit="N·m" />}
         {lifting && <Stat label={t("results.hold")} value={formatNm(result.holdingTorqueNm)} unit="N·m" />}
         <Stat label={t("results.speed")} value={formatRpm(result.outputSpeedRpm)} unit="rpm" />

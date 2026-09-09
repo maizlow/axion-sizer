@@ -84,6 +84,7 @@ function baseResult(): SizingResult {
     loweringTorqueNm: 0,
     holdingTorqueNm: 0,
     rmsTorqueNm: 0,
+    thermalRmsNm: 0,
     outputSpeedRpm: 0,
     outputPowerKw: 0,
     peakPowerKw: 0,
@@ -91,11 +92,38 @@ function baseResult(): SizingResult {
     accelRadS2: 0,
     accelTimeS: 1,
     dutyCycle: 1,
+    edHour: 1,
     safetyFactor: 1.3,
     formulas: [],
     warnings: [],
     notes: [],
   };
+}
+
+function applyThermalDuty(r: SizingResult, appId: ApplicationId, inputs: Inputs): SizingResult {
+  const ed = Math.min(1, Math.max(0.05, toSi(appId, inputs, "edHour") || 1));
+  const duty = String(inputs.dutyType ?? "S1");
+  const s5 = duty === "S5" ? 1.12 : 1;
+  r.edHour = ed;
+  r.thermalRmsNm = r.rmsTorqueNm * Math.sqrt(ed) * s5;
+  r.formulas.push({ name: "Operating ED", expression: "t_run / 1 h", value: ed, unit: "—" });
+  r.formulas.push({
+    name: "Thermal RMS",
+    expression: duty === "S5" ? "T_rms · √ED · 1.12 (S5 brake heat)" : "T_rms · √ED",
+    value: r.thermalRmsNm,
+    unit: "N·m",
+  });
+  if (ed < 0.99) {
+    r.notes.push(
+      `Thermal window ED=${(ed * 100).toFixed(0)}% of hour. Peak is unchanged; S1 check uses T_rms·√ED${duty === "S5" ? " ×1.12 for electric braking heat" : ""}.`,
+    );
+  } else if (duty === "S1") {
+    r.notes.push("S1 / ED 100%: thermal RMS equals cycle RMS (profile assumed to repeat all hour).");
+  }
+  if (duty === "S3" && ed > 0.7) {
+    r.warnings.push("IEC S3 selected but ED is high. S3-40% is 40% of the thermal period; 100% is S1.");
+  }
+  return r;
 }
 
 function finish(r: SizingResult): SizingResult {
@@ -119,6 +147,7 @@ function applyExtraGearing(r: SizingResult, appId: ApplicationId, inputs: Inputs
   r.holdingTorqueNm /= den;
   r.loweringTorqueNm /= den;
   r.rmsTorqueNm /= den;
+  r.thermalRmsNm = r.rmsTorqueNm;
   r.loadInertiaKgm2 /= ix * ix;
   const omega = (r.outputSpeedRpm * 2 * Math.PI) / 60;
   r.outputPowerKw = (r.outputTorqueNm * omega) / 1000;
@@ -561,5 +590,5 @@ export function calculateSizing(appId: ApplicationId, inputs: Inputs, cycle?: Mo
     default:
       r = finish(baseResult());
   }
-  return applyExtraGearing(r, appId, inputs);
+  return applyThermalDuty(applyExtraGearing(r, appId, inputs), appId, inputs);
 }
