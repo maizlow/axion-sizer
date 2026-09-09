@@ -1,72 +1,118 @@
 import type { Gearbox, Inverter, Motor } from "./types";
+import { estimateElectrical, estimateM0Scale, estimateS1Rpm } from "./motor-model";
 
-/** SEW-EURODRIVE published CM3C standstill data. Jmot is ×10⁻⁴ kg·m². */
-const CM3C_ROWS = [
-  { size: "63", length: "S" as const, m0: 2.7, mpk: 8.1, mass: 3.16, jE4: 1.3, n: 3000 },
-  { size: "63", length: "M" as const, m0: 4.9, mpk: 14.7, mass: 4.51, jE4: 2.5, n: 4500 },
-  { size: "63", length: "L" as const, m0: 6.4, mpk: 19.2, mass: 5.85, jE4: 3.6, n: 6000 },
-  { size: "71", length: "S" as const, m0: 6.5, mpk: 19.5, mass: 6.42, jE4: 7.4, n: 2000 },
-  { size: "71", length: "M" as const, m0: 9.5, mpk: 28.5, mass: 7.87, jE4: 10.7, n: 3000 },
-  { size: "71", length: "L" as const, m0: 14, mpk: 42, mass: 10.7, jE4: 17.1, n: 4500 },
-  { size: "80", length: "S" as const, m0: 10.5, mpk: 31.5, mass: 10.6, jE4: 17.6, n: 2000 },
-  { size: "80", length: "M" as const, m0: 15.6, mpk: 46.8, mass: 13, jE4: 25.2, n: 3000 },
-  { size: "80", length: "L" as const, m0: 22.8, mpk: 68.4, mass: 18, jE4: 40.6, n: 4500 },
-  { size: "100", length: "S" as const, m0: 19, mpk: 57, mass: 16.5, jE4: 40, n: 2000 },
-  { size: "100", length: "M" as const, m0: 26.8, mpk: 80.4, mass: 20.2, jE4: 57.3, n: 3000 },
-  { size: "100", length: "L" as const, m0: 40, mpk: 120, mass: 27.7, jE4: 92.1, n: 4500 },
+/** Mechanical size/length from SEW CM3C product table (M0, Mpk, J, mass). Speed class is a winding option. */
+const CM3C_MECH = [
+  { size: "63", length: "S" as const, m0: 2.7, mpk: 8.1, mass: 3.16, jE4: 1.3 },
+  { size: "63", length: "M" as const, m0: 4.9, mpk: 14.7, mass: 4.51, jE4: 2.5 },
+  { size: "63", length: "L" as const, m0: 6.4, mpk: 19.2, mass: 5.85, jE4: 3.6 },
+  { size: "71", length: "S" as const, m0: 6.5, mpk: 19.5, mass: 6.42, jE4: 7.4 },
+  { size: "71", length: "M" as const, m0: 9.5, mpk: 28.5, mass: 7.87, jE4: 10.7 },
+  { size: "71", length: "L" as const, m0: 14, mpk: 42, mass: 10.7, jE4: 17.1 },
+  { size: "80", length: "S" as const, m0: 10.5, mpk: 31.5, mass: 10.6, jE4: 17.6 },
+  { size: "80", length: "M" as const, m0: 15.6, mpk: 46.8, mass: 13, jE4: 25.2 },
+  { size: "80", length: "L" as const, m0: 22.8, mpk: 68.4, mass: 18, jE4: 40.6 },
+  { size: "100", length: "S" as const, m0: 19, mpk: 57, mass: 16.5, jE4: 40 },
+  { size: "100", length: "M" as const, m0: 26.8, mpk: 80.4, mass: 20.2, jE4: 57.3 },
+  { size: "100", length: "L" as const, m0: 40, mpk: 120, mass: 27.7, jE4: 92.1 },
 ];
 
-const CM3P_ROWS = [
-  { size: "71", length: "S" as const, m0: 7.9, mpk: 20, mass: 6.4, jE4: 2.7, n: 2000 },
-  { size: "71", length: "M" as const, m0: 10.1, mpk: 31, mass: 7.9, jE4: 3.7, n: 3000 },
-  { size: "71", length: "L" as const, m0: 15.4, mpk: 52, mass: 10.7, jE4: 5.8, n: 4500 },
-  { size: "80", length: "S" as const, m0: 17.2, mpk: 41, mass: 10.6, jE4: 7.5, n: 2000 },
-  { size: "80", length: "M" as const, m0: 22, mpk: 60, mass: 13, jE4: 10, n: 3000 },
-  { size: "80", length: "L" as const, m0: 31, mpk: 99, mass: 18, jE4: 14.7, n: 4500 },
-  { size: "100", length: "S" as const, m0: 26, mpk: 70, mass: 16.5, jE4: 15.2, n: 2000 },
-  { size: "100", length: "M" as const, m0: 36, mpk: 100, mass: 20.2, jE4: 20.7, n: 3000 },
-  { size: "100", length: "L" as const, m0: 47, mpk: 163, mass: 27.7, jE4: 30.1, n: 4500 },
+/** Published speed classes per size (type key -20/-30/-45/-60). Product brief + OI 31553362. */
+const CM3C_SPEEDS: Record<string, number[]> = {
+  "63": [3000, 4500, 6000],
+  "71": [2000, 3000, 4500, 6000],
+  "80": [2000, 3000, 4500, 6000],
+  "100": [2000, 3000, 4500],
+};
+
+const CM3P_MECH = [
+  { size: "71", length: "S" as const, m0: 7.9, mpk: 20, mass: 6.4, jE4: 2.7 },
+  { size: "71", length: "M" as const, m0: 10.1, mpk: 31, mass: 7.9, jE4: 3.7 },
+  { size: "71", length: "L" as const, m0: 15.4, mpk: 52, mass: 10.7, jE4: 5.8 },
+  { size: "80", length: "S" as const, m0: 17.2, mpk: 41, mass: 10.6, jE4: 7.5 },
+  { size: "80", length: "M" as const, m0: 22, mpk: 60, mass: 13, jE4: 10 },
+  { size: "80", length: "L" as const, m0: 31, mpk: 99, mass: 18, jE4: 14.7 },
+  { size: "100", length: "S" as const, m0: 26, mpk: 70, mass: 16.5, jE4: 15.2 },
+  { size: "100", length: "M" as const, m0: 36, mpk: 100, mass: 20.2, jE4: 20.7 },
+  { size: "100", length: "L" as const, m0: 47, mpk: 163, mass: 27.7, jE4: 30.1 },
 ];
+
+/** CM3P product table lists 2000 / 3000 / 4500. Type key uses the same -20/-30/-45 windings. */
+const CM3P_SPEEDS: Record<string, number[]> = {
+  "71": [2000, 3000, 4500],
+  "80": [2000, 3000, 4500],
+  "100": [2000, 3000, 4500],
+};
 
 function motorPowerKw(m0: number, rpm: number): number {
   return (m0 * rpm * 2 * Math.PI) / 60 / 1000;
 }
 
+/** Nameplates from SEW OI (31549632, 31557406, 31971474). */
+const NAMEPLATES: Record<
+  string,
+  { m0?: number; mpk?: number; i0: number; imax: number; nS1: number }
+> = {
+  "cm3c-71S-2000": { i0: 3.5, imax: 12.2, nS1: 2000 },
+  "cm3c-80S-6000": { m0: 10.1, mpk: 30.3, i0: 15.0, imax: 50.7, nS1: 3700 },
+  "cm3c-80L-6000": { m0: 22.8, mpk: 68.4, i0: 30.8, imax: 96.0, nS1: 3700 },
+};
+
+function speedCode(n: number): string {
+  return String(Math.round(n / 100)).padStart(2, "0");
+}
+
+function expandMotors(
+  series: "CM3C" | "CM3P",
+  kind: "cm3c" | "cm3p",
+  mech: typeof CM3C_MECH,
+  speeds: Record<string, number[]>,
+): Motor[] {
+  const out: Motor[] = [];
+  for (const row of mech) {
+    for (const n of speeds[row.size] ?? [3000]) {
+      const id = `${kind}-${row.size}${row.length}-${n}`;
+      const plate = NAMEPLATES[id];
+      const m0 = plate?.m0 ?? row.m0 * estimateM0Scale(n);
+      const mpk = plate?.mpk ?? row.mpk * (plate?.m0 ? plate.m0 / row.m0 : estimateM0Scale(n));
+      const elec = estimateElectrical(m0, mpk, n);
+      const i0 = plate?.i0 ?? elec.i0;
+      const imax = plate?.imax ?? elec.imax;
+      const nS1 = plate?.nS1 ?? estimateS1Rpm(n);
+      const kt = m0 / Math.max(i0, 1e-6);
+      const code = speedCode(n);
+      out.push({
+        id,
+        name: `${series}${row.size}${row.length}-${code}`,
+        kind,
+        series,
+        size: row.size,
+        length: row.length,
+        ratedPowerKw: Number(motorPowerKw(m0, nS1).toFixed(2)),
+        ratedSpeedRpm: n,
+        s1SpeedRpm: nS1,
+        contTorqueNm: Number(m0.toFixed(2)),
+        peakTorqueNm: Number(mpk.toFixed(1)),
+        inertiaKgm2: row.jE4 * 1e-4,
+        voltageV: 400,
+        standstillCurrentA: Number(i0.toFixed(2)),
+        maxCurrentA: Number(imax.toFixed(1)),
+        torqueConstantNmA: Number(kt.toFixed(3)),
+        electricalFrom: plate ? "nameplate" : "estimated",
+        frame: row.size,
+        massKg: row.mass,
+        notes: plate
+          ? `SEW nameplate ${series}${row.size}${row.length}-${code}A. M0 ${m0} N·m, I0 ${i0} A, nS1 ${nS1}.`
+          : `SEW ${series}${row.size}${row.length}-${code}A. M0/Mpk from size table; nS1/I0 estimated from nameplates 71S-20 and 80L-60.`,
+      });
+    }
+  }
+  return out;
+}
+
 export const MOTORS: Motor[] = [
-  ...CM3C_ROWS.map((row) => ({
-    id: `cm3c-${row.size}${row.length}-${row.n}`,
-    name: `CM3C${row.size}${row.length}`,
-    kind: "cm3c" as const,
-    series: "CM3C" as const,
-    size: row.size,
-    length: row.length,
-    ratedPowerKw: Number(motorPowerKw(row.m0, row.n).toFixed(2)),
-    ratedSpeedRpm: row.n,
-    contTorqueNm: row.m0,
-    peakTorqueNm: row.mpk,
-    inertiaKgm2: row.jE4 * 1e-4,
-    voltageV: 400,
-    frame: row.size,
-    massKg: row.mass,
-    notes: `SEW-EURODRIVE CM3C medium-inertia, ${row.n} min⁻¹. M0 ${row.m0} N·m, Mpk ${row.mpk} N·m.`,
-  })),
-  ...CM3P_ROWS.map((row) => ({
-    id: `cm3p-${row.size}${row.length}-${row.n}`,
-    name: `CM3P${row.size}${row.length}`,
-    kind: "cm3p" as const,
-    series: "CM3P" as const,
-    size: row.size,
-    length: row.length,
-    ratedPowerKw: Number(motorPowerKw(row.m0, row.n).toFixed(2)),
-    ratedSpeedRpm: row.n,
-    contTorqueNm: row.m0,
-    peakTorqueNm: row.mpk,
-    inertiaKgm2: row.jE4 * 1e-4,
-    voltageV: 400,
-    frame: row.size,
-    massKg: row.mass,
-    notes: `SEW-EURODRIVE CM3P high-dynamic, ${row.n} min⁻¹. M0 ${row.m0} N·m, Mpk ${row.mpk} N·m.`,
-  })),
+  ...expandMotors("CM3C", "cm3c", CM3C_MECH, CM3C_SPEEDS),
+  ...expandMotors("CM3P", "cm3p", CM3P_MECH, CM3P_SPEEDS),
 ];
 
 const PSF_SIZES = [
@@ -135,9 +181,11 @@ function expand(
   eta1: number,
   eta2: number,
 ): Gearbox[] {
+  const meFactor = kind === "psf" || kind === "pxg" ? 1.75 : kind === "psc" ? 1.6 : 1.5;
   const out: Gearbox[] = [];
   for (const s of sizes) {
     for (const ratio of ratios) {
+      if (kind === "psf" && ratio === 3 && s.size !== "121" && s.size !== "521") continue;
       const twoStage = ratio > 11.5;
       out.push({
         id: `${kind}-${s.size}-${ratio}`,
@@ -146,6 +194,7 @@ function expand(
         ratio,
         efficiency: twoStage ? eta2 : eta1,
         ratedOutputNm: s.t,
+        accelTorqueNm: Math.round(s.t * meFactor),
         maxInputRpm: s.nMax,
         inertiaKgm2: 0.00012 * Math.sqrt(ratio) * (s.t / 200),
         backlashArcmin: s.back ?? (kind === "helical" ? 12 : 10),
@@ -168,6 +217,7 @@ export const GEARBOXES: Gearbox[] = [
     ratio: 1,
     efficiency: 1,
     ratedOutputNm: 20000,
+    accelTorqueNm: 20000,
     maxInputRpm: 6000,
     inertiaKgm2: 0,
     backlashArcmin: 0,
@@ -218,7 +268,7 @@ export const RATIO_SETS: { family: string; one: number[]; two: number[]; note: s
 ];
 
 export const CATALOG_SOURCE =
-  "CM3C / CM3P standstill figures and PS.F / PS.C ratios are representative. MOVITRAC advanced 3×380–500 V sizes follow SEW ecodesign data 31968821 (type key 33957886): code = I_N × 10. Confirm in Workbench. Not licensed, not complete options.";
+  "CM3C/CM3P M0·Mpk from SEW size tables; speed classes from type key -20/-30/-45/-60. nS1/I0 from nameplates 71S-20 and 80L-60, others estimated. PS.F i=3 only 121/521. Me2 = 1.5–1.75×Mn. MOVITRAC from 31968821. Confirm in Workbench.";
 
 /** Official MOVITRAC advanced MCX91A, 3×380–500 V. Code = nominal output current ×10. Overload 150% / 30 s. Source: SEW 31968821. */
 const MCA_ROWS: { code: string; kw: number; iA: number }[] = [

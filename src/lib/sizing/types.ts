@@ -59,10 +59,16 @@ export interface Motor {
   length: "S" | "M" | "L";
   ratedPowerKw: number;
   ratedSpeedRpm: number;
+  /** S1 speed nS1. Below this, M0 is available continuously. */
+  s1SpeedRpm: number;
   contTorqueNm: number;
   peakTorqueNm: number;
   inertiaKgm2: number;
   voltageV: number;
+  standstillCurrentA: number;
+  maxCurrentA: number;
+  torqueConstantNmA: number;
+  electricalFrom: "nameplate" | "estimated";
   frame: string;
   massKg: number;
   notes: string;
@@ -85,6 +91,8 @@ export interface Gearbox {
   ratio: number;
   efficiency: number;
   ratedOutputNm: number;
+  /** Short-time acceleration torque Me2. */
+  accelTorqueNm: number;
   maxInputRpm: number;
   inertiaKgm2: number;
   backlashArcmin: number;

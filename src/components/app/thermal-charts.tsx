@@ -575,7 +575,11 @@ export function CompareThermalCharts({
   });
 
   const customPeak = customOn
-    ? motorPeakCurve({ ratedSpeedRpm: Math.max(customN, 1), peakTorqueNm: Math.max(customTp, 0) })
+    ? motorPeakCurve({
+        ratedSpeedRpm: Math.max(customN, 1),
+        peakTorqueNm: Math.max(customTp, 0),
+        contTorqueNm: Math.max(customTc, customTp / 3),
+      })
     : [];
   const customS1 = customOn
     ? motorS1Curve({ ratedSpeedRpm: Math.max(customN, 1), contTorqueNm: Math.max(customTc, 0) })

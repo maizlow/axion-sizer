@@ -79,13 +79,25 @@ export function ResultsPanel() {
   }, [matchesAll]);
   const [iMin, setIMin] = useState<number | null>(null);
   const [iMax, setIMax] = useState<number | null>(null);
+  const [rpmSel, setRpmSel] = useState<number[] | null>(null);
   const [showCalc, setShowCalc] = useState(false);
   const [compareIds, setCompareIds] = useState<string[]>([]);
+  const rpmOpts = useMemo(() => {
+    const set = new Set(matchesAll.map((m) => m.motor.ratedSpeedRpm));
+    return [...set].sort((a, b) => a - b);
+  }, [matchesAll]);
+  const rpmActive = rpmSel && rpmSel.length ? rpmSel : rpmOpts;
   const ratioMin = iMin ?? iSpan.min;
   const ratioMax = iMax ?? iSpan.max;
   const matches = useMemo(
-    () => matchesAll.filter((m) => m.gearbox.ratio >= ratioMin - 1e-9 && m.gearbox.ratio <= ratioMax + 1e-9),
-    [matchesAll, ratioMin, ratioMax],
+    () =>
+      matchesAll.filter(
+        (m) =>
+          m.gearbox.ratio >= ratioMin - 1e-9 &&
+          m.gearbox.ratio <= ratioMax + 1e-9 &&
+          rpmActive.includes(m.motor.ratedSpeedRpm),
+      ),
+    [matchesAll, ratioMin, ratioMax, rpmActive],
   );
 
   function matchKey(m: { motor: { id: string }; gearbox: { id: string } }) {
@@ -239,6 +251,29 @@ export function ResultsPanel() {
             </select>
           </label>
         </div>
+        {rpmOpts.length > 1 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted-foreground">{t("results.rpm")}</span>
+            {rpmOpts.map((n) => {
+              const on = rpmActive.includes(n);
+              return (
+                <Button
+                  key={n}
+                  type="button"
+                  size="sm"
+                  variant={on ? "secondary" : "outline"}
+                  onClick={() => {
+                    const cur = rpmSel ?? rpmOpts;
+                    const next = cur.includes(n) ? cur.filter((x) => x !== n) : [...cur, n];
+                    setRpmSel(next.length === 0 || next.length === rpmOpts.length ? null : next);
+                  }}
+                >
+                  {n}
+                </Button>
+              );
+            })}
+          </div>
+        )}
         <div className="rounded-[var(--radius-md)] border border-border px-3 py-2">
           <div className="mb-1 flex items-center justify-between gap-2 text-xs text-muted-foreground">
             <span>{t("results.ratio")}</span>

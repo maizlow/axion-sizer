@@ -1,4 +1,4 @@
-import { motorRatedCurrentA } from "./match";
+import { peakTorqueAt, s1TorqueAt } from "./motor-model";
 import type { Gearbox, Inverter, MatchScore, MotionCycle, Motor, SizingResult } from "./types";
 
 export interface CurvePt {
@@ -16,30 +16,37 @@ export interface OpPt {
   tag?: string;
 }
 
-export function motorPeakCurve(motor: Pick<Motor, "ratedSpeedRpm" | "peakTorqueNm">): CurvePt[] {
-  const nR = motor.ratedSpeedRpm;
-  const mpk = motor.peakTorqueNm;
-  const nMax = nR * 1.12;
+export function motorPeakCurve(
+  motor: Pick<Motor, "ratedSpeedRpm" | "peakTorqueNm" | "contTorqueNm"> & { s1SpeedRpm?: number },
+): CurvePt[] {
+  const nR = Math.max(motor.ratedSpeedRpm, 1);
+  const nS1 = motor.s1SpeedRpm ?? nR;
+  const nMax = nR * 1.08;
+  const full: Pick<Motor, "contTorqueNm" | "peakTorqueNm" | "s1SpeedRpm" | "ratedSpeedRpm"> = {
+    contTorqueNm: motor.contTorqueNm ?? motor.peakTorqueNm / 3,
+    peakTorqueNm: motor.peakTorqueNm,
+    s1SpeedRpm: nS1,
+    ratedSpeedRpm: nR,
+  };
   const pts: CurvePt[] = [];
   for (let n = 0; n <= nMax; n += nMax / 40) {
-    const t = n <= nR ? mpk : mpk * Math.max(0.12, 1 - ((n - nR) / (nMax - nR)) ** 1.6);
-    pts.push({ n, t });
+    pts.push({ n, t: peakTorqueAt(full, n) });
   }
-  pts.push({ n: nMax, t: mpk * 0.12 });
   return pts;
 }
 
-/** Approximate S1 / effective continuous limit vs speed (non-ventilated shape). */
-export function motorS1Curve(motor: Pick<Motor, "ratedSpeedRpm" | "contTorqueNm">): CurvePt[] {
-  const nR = motor.ratedSpeedRpm;
-  const m0 = motor.contTorqueNm;
+/** S1: M0 to nS1, then 1/n. */
+export function motorS1Curve(
+  motor: Pick<Motor, "ratedSpeedRpm" | "contTorqueNm"> & { s1SpeedRpm?: number },
+): CurvePt[] {
+  const nR = Math.max(motor.ratedSpeedRpm, 1);
+  const nS1 = motor.s1SpeedRpm ?? nR;
+  const full = { contTorqueNm: motor.contTorqueNm, s1SpeedRpm: nS1, ratedSpeedRpm: nR };
   const pts: CurvePt[] = [];
-  const nMax = nR;
-  for (let n = 0; n <= nMax; n += nMax / 36) {
-    const u = n / Math.max(nR, 1);
-    const t = m0 * (0.88 - 0.22 * u * u);
-    pts.push({ n, t: Math.max(0.25 * m0, t) });
+  for (let n = 0; n <= nR; n += nR / 36) {
+    pts.push({ n, t: s1TorqueAt(full, n) });
   }
+  pts.push({ n: nR, t: s1TorqueAt(full, nR) });
   return pts;
 }
 
@@ -47,6 +54,14 @@ export function gearboxRatedLine(gb: Gearbox): CurvePt[] {
   return [
     { n: 0, t: gb.ratedOutputNm },
     { n: gb.maxInputRpm, t: gb.ratedOutputNm },
+  ];
+}
+
+export function gearboxAccelLine(gb: Gearbox): CurvePt[] {
+  const me = gb.accelTorqueNm || gb.ratedOutputNm * 1.6;
+  return [
+    { n: 0, t: me },
+    { n: gb.maxInputRpm, t: me },
   ];
 }
 
@@ -64,17 +79,19 @@ export function gearboxThermalCurve(gb: Gearbox): CurvePt[] {
 }
 
 export function inverterLimitCurves(motor: Motor, inv: Inverter): { cont: CurvePt[]; peak: CurvePt[] } {
-  const iMot = Math.max(motorRatedCurrentA(motor), 1e-6);
-  const tCont = motor.contTorqueNm * (inv.ratedCurrentA / iMot);
-  const tPeak = motor.contTorqueNm * (inv.maxCurrentA / iMot);
+  const kt = Math.max(motor.torqueConstantNmA, 1e-6);
+  const tCont = inv.ratedCurrentA * kt;
+  const tPeak = inv.maxCurrentA * kt;
   const nR = motor.ratedSpeedRpm;
-  const nMax = nR * 1.12;
+  const nS1 = motor.s1SpeedRpm || nR;
+  const nMax = nR * 1.08;
+  const mot = motor;
   const cont: CurvePt[] = [];
   const peak: CurvePt[] = [];
   for (let n = 0; n <= nMax; n += nMax / 24) {
-    const fade = n <= nR ? 1 : Math.max(0.25, nR / n);
-    cont.push({ n, t: tCont * fade });
-    peak.push({ n, t: tPeak * fade });
+    const fade = n <= nS1 ? 1 : nS1 / Math.max(n, 1);
+    cont.push({ n, t: Math.min(tCont * fade, s1TorqueAt(mot, n) * 1.05) });
+    peak.push({ n, t: Math.min(tPeak * fade, peakTorqueAt(mot, n) * 1.05) });
   }
   return { cont, peak };
 }

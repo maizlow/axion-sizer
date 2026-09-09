@@ -36,8 +36,11 @@ export function CatalogTables() {
                 <th className="px-3 py-2 font-medium">{t("catalog.series")}</th>
                 <th className="px-3 py-2 text-right font-medium">M0 N·m</th>
                 <th className="px-3 py-2 text-right font-medium">Mpk N·m</th>
-                <th className="px-3 py-2 text-right font-medium">n min⁻¹</th>
-                <th className="px-3 py-2 text-right font-medium">J 10⁻⁴ kg·m²</th>
+                <th className="px-3 py-2 text-right font-medium">nN</th>
+                <th className="px-3 py-2 text-right font-medium">nS1</th>
+                <th className="px-3 py-2 text-right font-medium">I0 A</th>
+                <th className="px-3 py-2 text-right font-medium">kt</th>
+                <th className="px-3 py-2 text-right font-medium">J 10⁻⁴</th>
                 <th className="px-3 py-2 text-right font-medium">m kg</th>
               </tr>
             </thead>
@@ -51,6 +54,9 @@ export function CatalogTables() {
                   <td className="px-3 py-2 text-right font-mono tabular-nums">{formatNm(m.contTorqueNm)}</td>
                   <td className="px-3 py-2 text-right font-mono tabular-nums">{formatNm(m.peakTorqueNm)}</td>
                   <td className="px-3 py-2 text-right font-mono tabular-nums">{formatRpm(m.ratedSpeedRpm)}</td>
+                  <td className="px-3 py-2 text-right font-mono tabular-nums">{formatRpm(m.s1SpeedRpm)}</td>
+                  <td className="px-3 py-2 text-right font-mono tabular-nums">{m.standstillCurrentA.toFixed(1)}</td>
+                  <td className="px-3 py-2 text-right font-mono tabular-nums">{m.torqueConstantNmA.toFixed(2)}</td>
                   <td className="px-3 py-2 text-right font-mono tabular-nums">
                     {(m.inertiaKgm2 * 1e4).toFixed(1)}
                   </td>
@@ -103,6 +109,7 @@ export function CatalogTables() {
                 <th className="px-3 py-2 font-medium">{t("catalog.family")}</th>
                 <th className="px-3 py-2 font-medium">{t("catalog.size")}</th>
                 <th className="px-3 py-2 text-right font-medium">T class N·m</th>
+                <th className="px-3 py-2 text-right font-medium">Me2 N·m</th>
                 <th className="px-3 py-2 text-right font-medium">n1 max</th>
                 <th className="px-3 py-2 text-right font-medium">Backlash ′</th>
                 <th className="px-3 py-2 font-medium">{t("catalog.frames")}</th>
@@ -114,6 +121,7 @@ export function CatalogTables() {
                   <td className="px-3 py-2">{g.family}</td>
                   <td className="px-3 py-2 font-medium">{g.size}</td>
                   <td className="px-3 py-2 text-right font-mono tabular-nums">{formatNm(g.ratedOutputNm)}</td>
+                  <td className="px-3 py-2 text-right font-mono tabular-nums">{formatNm(g.accelTorqueNm)}</td>
                   <td className="px-3 py-2 text-right font-mono tabular-nums">{formatRpm(g.maxInputRpm)}</td>
                   <td className="px-3 py-2 text-right font-mono tabular-nums">{g.backlashArcmin}</td>
                   <td className="px-3 py-2 text-xs text-muted-foreground">{g.motorFrames.join(", ")}</td>

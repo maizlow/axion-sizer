@@ -1,4 +1,5 @@
 import { GEARBOXES, INVERTERS, MOTORS } from "./catalog";
+import { currentFromTorque, peakTorqueAt, s1TorqueAt } from "./motor-model";
 import { serviceFactorFb, startsPerHour } from "./service-factor";
 import type { Gearbox, GearboxKind, Inverter, MatchScore, MotionCycle, Motor, MotorKind, SizingResult } from "./types";
 
@@ -12,6 +13,7 @@ export interface MatchFilters {
 const INERTIA_LIMIT: Record<MotorKind, number> = { cm3c: 15, cm3p: 8 };
 
 export function motorRatedCurrentA(motor: Motor): number {
+  if (motor.standstillCurrentA > 0) return motor.standstillCurrentA;
   const p = motor.ratedPowerKw > 0 ? motor.ratedPowerKw : (motor.contTorqueNm * motor.ratedSpeedRpm * 2 * Math.PI) / 60 / 1000;
   const v = motor.voltageV || 400;
   return (p * 1000) / (Math.sqrt(3) * v * 0.82);
@@ -20,13 +22,12 @@ export function motorRatedCurrentA(motor: Motor): number {
 export function loadCurrents(result: SizingResult, motor: Motor, gb: Gearbox): { rmsA: number; peakA: number; ratedA: number } {
   const i = Math.max(gb.ratio, 1e-9);
   const eta = Math.max(gb.efficiency, 0.5);
-  const ratedA = motorRatedCurrentA(motor);
   const tMotRms = result.rmsTorqueNm / (i * eta);
   const tMotPeak = Math.max(result.peakTorqueNm, result.holdingTorqueNm) / (i * eta);
   return {
-    ratedA,
-    rmsA: ratedA * (tMotRms / Math.max(motor.contTorqueNm, 1e-6)),
-    peakA: ratedA * (tMotPeak / Math.max(motor.contTorqueNm, 1e-6)),
+    ratedA: motorRatedCurrentA(motor),
+    rmsA: currentFromTorque(motor, tMotRms),
+    peakA: currentFromTorque(motor, tMotPeak),
   };
 }
 
@@ -50,24 +51,34 @@ export function matchDrives(result: SizingResult, filters: MatchFilters, inverte
   for (const motor of motors) {
     for (const gb of boxes) {
       if (motor.ratedSpeedRpm > gb.maxInputRpm + 1) continue;
+      if (needSpeed * gb.ratio > gb.maxInputRpm + 1) continue;
       const mountOk = gb.kind === "direct" || gb.motorFrames.includes(motor.size);
       if (!mountOk) continue;
+      const nMot = needSpeed * gb.ratio;
+      if (nMot > motor.ratedSpeedRpm * 1.02) continue;
+      const eta = Math.max(gb.efficiency, 0.5);
+      const s1Mot = s1TorqueAt(motor, nMot);
+      const pkMot = peakTorqueAt(motor, nMot);
       const outSpeed = motor.ratedSpeedRpm / gb.ratio;
-      const outCont = motor.contTorqueNm * gb.ratio * gb.efficiency;
-      const outPeak = motor.peakTorqueNm * gb.ratio * gb.efficiency;
+      const outCont = s1Mot * gb.ratio * eta;
+      const outPeak = pkMot * gb.ratio * eta;
       const jRef = jLoad / (gb.ratio * gb.ratio) + gb.inertiaKgm2;
       const inertiaRatio = motor.inertiaKgm2 > 0 ? jRef / motor.inertiaKgm2 : 99;
       const speedOk = outSpeed >= needSpeed * 0.98;
-      const torqueOk = outCont >= needCont && outPeak >= needPeak;
+      const tMotNeedC = needCont / (gb.ratio * eta);
+      const tMotNeedP = needPeak / (gb.ratio * eta);
+      const torqueOk = s1Mot >= tMotNeedC && pkMot >= tMotNeedP;
       const sfb = serviceFactorFb({
         inertiaRatio,
         hoursPerDay: filters.hoursPerDay,
         startsPerHour: z,
       });
-      const gbNeed = Math.max(result.peakTorqueNm, result.holdingTorqueNm, result.rmsTorqueNm) * sfb.fb;
-      const tWork = Math.max(result.peakTorqueNm, result.holdingTorqueNm, result.rmsTorqueNm, 1e-6);
+      const tEq = Math.max(result.rmsTorqueNm, result.holdingTorqueNm);
+      const gbNeed = tEq * sfb.fb;
+      const tPeakLoad = Math.max(result.peakTorqueNm, result.holdingTorqueNm);
+      const tWork = Math.max(tEq, tPeakLoad, 1e-6);
       const fbAvail = gb.ratedOutputNm / tWork;
-      const gbOk = gb.ratedOutputNm >= gbNeed;
+      const gbOk = gb.ratedOutputNm >= gbNeed && (gb.accelTorqueNm ?? gb.ratedOutputNm * 1.5) >= tPeakLoad;
       const inertiaOk = inertiaRatio <= INERTIA_LIMIT[motor.kind] || gb.kind === "direct";
       if (!speedOk || !torqueOk || !gbOk) continue;
 
