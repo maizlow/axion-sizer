@@ -307,6 +307,28 @@ export const APPLICATIONS: ApplicationDef[] = [
   },
 ];
 
+const EXTRA_GEARING: FieldDef[] = [
+  num("extraRatio", "Additional gearing i", "—", 1, {
+    min: 0.05,
+    max: 500,
+    step: 0.01,
+    hint: "Sprockets, belt or extra stage after the catalog gearbox. Driven / drive. 1 if the gearbox output is the load shaft.",
+  }),
+  num("extraEta", "Additional gearing η", "%", 98, {
+    min: 50,
+    max: 100,
+    step: 1,
+    metricToSi: 0.01,
+    hint: "Efficiency of that extra stage. Ignored when i = 1.",
+  }),
+];
+
+for (const app of APPLICATIONS) {
+  const i = app.fields.findIndex((f) => f.key === "safetyFactor");
+  if (i < 0) app.fields.push(...EXTRA_GEARING);
+  else app.fields.splice(i, 0, ...EXTRA_GEARING);
+}
+
 export function getApplication(id: ApplicationId): ApplicationDef {
   const found = APPLICATIONS.find((a) => a.id === id);
   if (!found) throw new Error(`Unknown application ${id}`);

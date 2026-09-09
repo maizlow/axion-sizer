@@ -24,6 +24,9 @@ export const FIELD_HELP: Record<string, string> = {
     "Seconds from standstill to the speed field. Peak accel a = v / t. Hidden when the travel table is on — each step has its own time.",
   efficiency:
     "Percent of mechanical path after the catalog gearbox: screw, belt, rack, drum, couplings. 100 if this drive is the only reduction.",
+  extraRatio:
+    "Gearing after the catalog gearbox (sprockets, belt, extra stage). Driven / drive teeth. 1 means the gearbox output is the load shaft.",
+  extraEta: "Efficiency of that extra stage, percent. Used only when additional i is not 1. Chain typically 96–98%.",
   dutyCycle:
     "Running time as a percent of the full cycle. Feeds RMS torque. Hidden when the travel table is on; then duty is computed from the steps.",
   safetyFactor:

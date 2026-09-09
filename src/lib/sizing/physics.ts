@@ -108,6 +108,31 @@ function finish(r: SizingResult): SizingResult {
   return r;
 }
 
+function applyExtraGearing(r: SizingResult, appId: ApplicationId, inputs: Inputs): SizingResult {
+  const ix = Math.max(toSi(appId, inputs, "extraRatio") || 1, 1e-12);
+  if (Math.abs(ix - 1) < 1e-6) return r;
+  const etax = Math.min(1, Math.max(0.2, toSi(appId, inputs, "extraEta") || 0.98));
+  const den = ix * etax;
+  r.outputSpeedRpm *= ix;
+  r.outputTorqueNm /= den;
+  r.peakTorqueNm /= den;
+  r.holdingTorqueNm /= den;
+  r.loweringTorqueNm /= den;
+  r.rmsTorqueNm /= den;
+  r.loadInertiaKgm2 /= ix * ix;
+  const omega = (r.outputSpeedRpm * 2 * Math.PI) / 60;
+  r.outputPowerKw = (r.outputTorqueNm * omega) / 1000;
+  r.peakPowerKw = (r.peakTorqueNm * omega) / 1000;
+  r.formulas.push({ name: "Additional gearing", expression: "i_x (driven / drive after catalog GB)", value: ix, unit: "—" });
+  r.formulas.push({ name: "Extra-stage η", expression: "η_x", value: etax, unit: "—" });
+  r.formulas.push({ name: "Speed at GB output", expression: "n_gb = n_load · i_x", value: r.outputSpeedRpm, unit: "rpm" });
+  r.formulas.push({ name: "Torque at GB output", expression: "T_gb = T_load / (i_x η_x)", value: r.outputTorqueNm, unit: "N·m" });
+  r.notes.push(
+    `Additional mechanical gearing i=${ix.toFixed(3)} after the catalog gearbox. Matching uses gearbox-output speed and torque, not the load shaft.`,
+  );
+  return r;
+}
+
 function orientationTheta(inputs: Inputs, fallbackDeg: number): number {
   const o = String(inputs.orientation ?? "");
   if (o === "vertical") return Math.PI / 2;
@@ -498,30 +523,43 @@ function sizePump(appId: ApplicationId, inputs: Inputs): SizingResult {
 }
 
 export function calculateSizing(appId: ApplicationId, inputs: Inputs, cycle?: MotionCycle): SizingResult {
+  let r: SizingResult;
   switch (appId) {
     case "conveyor":
-      return sizeLinearBeltLike(appId, inputs, { payload: "payloadKg", extra: "beltMassKg" }, "speedMps", "pulleyDiaM", cycle);
+      r = sizeLinearBeltLike(appId, inputs, { payload: "payloadKg", extra: "beltMassKg" }, "speedMps", "pulleyDiaM", cycle);
+      break;
     case "roller-conveyor":
-      return sizeLinearBeltLike(appId, inputs, { payload: "payloadKg", extra: "rollerMassKg" }, "speedMps", "rollerDiaM", cycle);
+      r = sizeLinearBeltLike(appId, inputs, { payload: "payloadKg", extra: "rollerMassKg" }, "speedMps", "rollerDiaM", cycle);
+      break;
     case "crane":
-      return sizeHoistLike(appId, inputs, "payloadKg", "hookSpeedMps", "drumDiaM", "falls", cycle);
+      r = sizeHoistLike(appId, inputs, "payloadKg", "hookSpeedMps", "drumDiaM", "falls", cycle);
+      break;
     case "winch":
-      return sizeHoistLike(appId, inputs, "payloadKg", "lineSpeedMps", "drumDiaM", null, cycle);
+      r = sizeHoistLike(appId, inputs, "payloadKg", "lineSpeedMps", "drumDiaM", null, cycle);
+      break;
     case "ball-screw":
-      return sizeScrew(appId, inputs, cycle);
+      r = sizeScrew(appId, inputs, cycle);
+      break;
     case "rack-pinion":
-      return sizeRackOrGantry(appId, inputs, "pinionDiaM", true, cycle);
+      r = sizeRackOrGantry(appId, inputs, "pinionDiaM", true, cycle);
+      break;
     case "gantry":
-      return sizeRackOrGantry(appId, inputs, "pulleyDiaM", false, cycle);
+      r = sizeRackOrGantry(appId, inputs, "pulleyDiaM", false, cycle);
+      break;
     case "rotary-table":
-      return sizeRotary(appId, inputs, cycle);
+      r = sizeRotary(appId, inputs, cycle);
+      break;
     case "mixer":
-      return sizeMixer(appId, inputs);
+      r = sizeMixer(appId, inputs);
+      break;
     case "fan":
-      return sizeFan(appId, inputs);
+      r = sizeFan(appId, inputs);
+      break;
     case "pump":
-      return sizePump(appId, inputs);
+      r = sizePump(appId, inputs);
+      break;
     default:
-      return finish(baseResult());
+      r = finish(baseResult());
   }
+  return applyExtraGearing(r, appId, inputs);
 }
