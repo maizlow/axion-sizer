@@ -23,6 +23,11 @@ export interface SandSource {
   residueG: number[];
   blendPct: number;
   moisturePct: number;
+  sampledAt: string;
+}
+
+export function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
 }
 
 export function emptyResidues(): number[] {
@@ -82,6 +87,7 @@ export const SAMPLE_SANDS: SandSource[] = [
     onSite: true,
     blendPct: 25,
     moisturePct: 0,
+    sampledAt: todayIso(),
     residueG: [60, 349, 77, 101, 172, 348, 238, 0, 0, 0, 0],
   },
   {
@@ -90,6 +96,7 @@ export const SAMPLE_SANDS: SandSource[] = [
     onSite: true,
     blendPct: 75,
     moisturePct: 0,
+    sampledAt: todayIso(),
     residueG: [3, 8, 49, 254, 246, 255, 206, 28, 0, 0, 0],
   },
   {
@@ -98,6 +105,7 @@ export const SAMPLE_SANDS: SandSource[] = [
     onSite: false,
     blendPct: 0,
     moisturePct: 0,
+    sampledAt: todayIso(),
     residueG: [5, 79, 124, 172, 242, 309, 63, 8, 0, 0, 0],
   },
 ];

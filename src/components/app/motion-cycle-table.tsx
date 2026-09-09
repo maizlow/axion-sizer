@@ -1,9 +1,9 @@
 import { CycleChart } from "@/components/app/cycle-chart";
 import { FieldTip } from "@/components/app/field-tip";
 import { Plus, Trash2 } from "lucide-react";
-import { ACCEL_LAW_OPTS, INCLINE_OPTS, appsWithCycle, cycleSummary } from "@/lib/sizing/cycle";
+import { ACCEL_LAW_OPTS, INCLINE_OPTS, TRAVEL_UNITS, appsWithCycle, cycleSummary, distFromDisp, distToDisp, travelLabels, velFromDisp, velToDisp } from "@/lib/sizing/cycle";
 import { useT } from "@/lib/i18n/locale";
-import type { AccelLaw, CycleSegment, InclineDir } from "@/lib/sizing/types";
+import type { AccelLaw, CycleSegment, InclineDir, TravelUnit } from "@/lib/sizing/types";
 import { Button } from "@/components/ui/button";
 import { useSizingStore } from "@/store/sizing-store";
 
@@ -16,19 +16,19 @@ function fmt(n: number, digits: number): string {
 const ROWS: {
   key: keyof CycleSegment;
   label: string;
-  unit: string;
   kind: "select" | "number" | "derived";
+  dim?: "v" | "a" | "s";
   digits?: number;
 }[] = [
-  { key: "inclineDir", label: "Motion phase", unit: "—", kind: "select" },
-  { key: "accelLaw", label: "Type of acceleration", unit: "—", kind: "select" },
-  { key: "vStart", label: "Start velocity", unit: "m/s", kind: "number", digits: 1 },
-  { key: "vEnd", label: "End velocity", unit: "m/s", kind: "number", digits: 1 },
-  { key: "accel", label: "Acceleration", unit: "m/s²", kind: "number", digits: 1 },
-  { key: "time", label: "Time", unit: "s", kind: "number", digits: 1 },
-  { key: "distanceMm", label: "Distance", unit: "mm", kind: "number", digits: 1 },
-  { key: "payloadKg", label: "Payload", unit: "kg", kind: "number", digits: 1 },
-  { key: "positionMm", label: "Position", unit: "mm", kind: "derived", digits: 1 },
+  { key: "inclineDir", label: "Motion phase", kind: "select" },
+  { key: "accelLaw", label: "Type of acceleration", kind: "select" },
+  { key: "vStart", label: "Start velocity", kind: "number", dim: "v", digits: 1 },
+  { key: "vEnd", label: "End velocity", kind: "number", dim: "v", digits: 1 },
+  { key: "accel", label: "Acceleration", kind: "number", dim: "a", digits: 1 },
+  { key: "time", label: "Time", kind: "number", digits: 1 },
+  { key: "distanceMm", label: "Distance", kind: "number", dim: "s", digits: 1 },
+  { key: "payloadKg", label: "Payload", kind: "number", digits: 1 },
+  { key: "positionMm", label: "Position", kind: "derived", dim: "s", digits: 1 },
 ];
 
 export function MotionCycleTable() {
@@ -36,6 +36,7 @@ export function MotionCycleTable() {
   const inputs = useSizingStore((s) => s.inputs);
   const cycle = useSizingStore((s) => s.cycle);
   const setCycleEnabled = useSizingStore((s) => s.setCycleEnabled);
+  const setTravelUnit = useSizingStore((s) => s.setTravelUnit);
   const updateSegment = useSizingStore((s) => s.updateSegment);
   const addSegment = useSizingStore((s) => s.addSegment);
   const removeSegment = useSizingStore((s) => s.removeSegment);
@@ -44,6 +45,17 @@ export function MotionCycleTable() {
   if (!appsWithCycle(applicationId)) return null;
 
   const sum = cycleSummary(cycle);
+  const unit: TravelUnit = cycle.travelUnit ?? "mm";
+  const labels = travelLabels(unit);
+
+  const rowUnit = (row: (typeof ROWS)[number]): string => {
+    if (row.dim === "v") return labels.v;
+    if (row.dim === "a") return labels.a;
+    if (row.dim === "s") return labels.s;
+    if (row.key === "time") return "s";
+    if (row.key === "payloadKg") return "kg";
+    return "—";
+  };
 
   return (
     <section className="flex flex-col gap-3">
@@ -65,6 +77,25 @@ export function MotionCycleTable() {
 
       {cycle.enabled && (
         <>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span>{t("cycle.travelUnit")}</span>
+            <div className="inline-flex rounded-[var(--radius-sm)] border border-border p-0.5">
+              {TRAVEL_UNITS.map((u) => (
+                <button
+                  key={u}
+                  type="button"
+                  onClick={() => setTravelUnit(u)}
+                  className={
+                    unit === u
+                      ? "h-7 rounded-[calc(var(--radius-sm)-2px)] bg-muted px-2.5 font-mono text-foreground"
+                      : "h-7 rounded-[calc(var(--radius-sm)-2px)] px-2.5 font-mono"
+                  }
+                >
+                  {u}
+                </button>
+              ))}
+            </div>
+          </div>
           <CycleChart cycle={cycle} />
 
           <div className="overflow-x-auto rounded-[var(--radius-md)] border border-border">
@@ -115,11 +146,11 @@ export function MotionCycleTable() {
                     )}
                     <FieldTip text={t(`help.${row.key}`)} label={row.label} />
                   </span>
-                  <span className="ml-1 font-mono font-normal text-muted-foreground">{row.unit}</span>
+                  <span className="ml-1 font-mono font-normal text-muted-foreground">{rowUnit(row)}</span>
                 </th>
                 {cycle.segments.map((seg) => (
                   <td key={seg.id} className="px-2 py-1">
-                    <Cell seg={seg} row={row} onEdit={updateSegment} />
+                    <Cell seg={seg} row={row} unit={unit} onEdit={updateSegment} />
                   </td>
                 ))}
               </tr>
@@ -134,8 +165,9 @@ export function MotionCycleTable() {
           {t("cycle.add")}
         </Button>
         <p className="font-mono text-xs text-muted-foreground">
-          T = {sum.periodS.toFixed(1)} s · travel {sum.travelMm.toFixed(1)} mm · v<sub>max</sub> {sum.peakV.toFixed(1)}{" "}
-          m/s · a<sub>max</sub> {sum.peakA.toFixed(1)} m/s²
+          T = {sum.periodS.toFixed(1)} s · travel {distToDisp(sum.travelMm, unit).toFixed(1)} {labels.s} · v
+          <sub>max</sub> {velToDisp(sum.peakV, unit).toFixed(1)} {labels.v} · a<sub>max</sub>{" "}
+          {velToDisp(sum.peakA, unit).toFixed(1)} {labels.a}
         </p>
           </div>
         </>
@@ -147,10 +179,12 @@ export function MotionCycleTable() {
 function Cell({
   seg,
   row,
+  unit,
   onEdit,
 }: {
   seg: CycleSegment;
   row: (typeof ROWS)[number];
+  unit: TravelUnit;
   onEdit: (id: string, patch: Partial<CycleSegment>, edited: keyof CycleSegment) => void;
 }) {
   const t = useT();
@@ -191,8 +225,9 @@ function Cell({
     );
   }
   const fallbackPay = 0;
-  const raw = row.key === "payloadKg" ? (seg.payloadKg ?? fallbackPay) : seg[row.key];
-  const n = typeof raw === "number" ? raw : Number(raw);
+  let n = row.key === "payloadKg" ? (seg.payloadKg ?? fallbackPay) : Number(seg[row.key]);
+  if (row.dim === "v" || row.dim === "a") n = velToDisp(n, unit);
+  if (row.dim === "s") n = distToDisp(n, unit);
   if (row.kind === "derived") {
     return <span className="block h-8 px-2 py-1.5 font-mono text-xs tabular-nums text-muted-foreground">{fmt(n, row.digits ?? 2)}</span>;
   }
@@ -206,7 +241,10 @@ function Cell({
       onChange={(e) => {
         const v = Number(e.target.value);
         if (!Number.isFinite(v)) return;
-        onEdit(seg.id, { [row.key]: Math.round(v * 10) / 10 } as Partial<CycleSegment>, row.key);
+        let stored = Math.round(v * 10) / 10;
+        if (row.dim === "v" || row.dim === "a") stored = velFromDisp(stored, unit);
+        if (row.dim === "s") stored = distFromDisp(stored, unit);
+        onEdit(seg.id, { [row.key]: stored } as Partial<CycleSegment>, row.key);
       }}
     />
   );

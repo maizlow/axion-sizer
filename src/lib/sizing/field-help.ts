@@ -59,12 +59,12 @@ export const CYCLE_HELP: Record<string, string> = {
     "Which part of the move this column is. Acceleration, deceleration, or hold/cruise (constant speed or standstill). Slope of the machine is the incline field.",
   accelLaw:
     "How speed changes inside the step. Linear is v = at. sin² is smoother. Jerk-limited caps the rate of change of acceleration.",
-  vStart: "Speed at the start of this step, in m/s. Must match the previous step’s end speed for a continuous profile.",
-  vEnd: "Speed at the end of this step, in m/s. 0 is a stop. Used with time to get acceleration.",
-  accel: "Average acceleration in m/s². Sign is inferred from start and end speed. a = (v_end − v_start) / t.",
-  time: "Duration of this step in seconds. Changing time recalculates acceleration and distance if you edited those last.",
-  distanceMm: "Travel in this step, millimetres. s = v_avg × t. Position below is cumulative.",
-  positionMm: "Axis position at the end of this step, millimetres from the start of the cycle. Read-only cumulative sum.",
+  vStart: "Speed at the start of this step, in the table unit. Must match the previous step’s end speed.",
+  vEnd: "Speed at the end of this step, in the table unit. 0 is a stop.",
+  accel: "Average acceleration in the table unit per second squared. a = (v_end − v_start) / t.",
+  time: "Duration of this step in seconds. Changing time recalculates acceleration and distance.",
+  distanceMm: "Travel in this step, in the table unit (m, mm or deg). s = v_avg × t.",
+  positionMm: "Axis position at the end of this step, same unit, from the start of the cycle.",
 };
 
 export function helpFor(key: string): string | undefined {

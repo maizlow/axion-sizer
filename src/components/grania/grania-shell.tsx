@@ -14,6 +14,7 @@ import {
   envelopeStatus,
   hValue,
   mixResidues,
+  todayIso,
   type EnvelopeRow,
   type SandSource,
 } from "@/lib/sand/grading";
@@ -239,6 +240,7 @@ export function GraniaShell() {
               <thead className="text-xs text-muted-foreground">
                 <tr>
                   <th className="py-1 font-medium">{t("grania.sand")}</th>
+                  <th className="py-1 font-medium">{t("grania.sampled")}</th>
                   <th className="py-1 font-medium">{t("grania.onSite")}</th>
                   <th className="py-1 font-medium">
                     {t("grania.pct")} <FieldTip text={t("help.graniaPct")} label={t("grania.pct")} />
@@ -267,6 +269,14 @@ export function GraniaShell() {
                             </button>
                           )}
                         </div>
+                      </td>
+                      <td className="py-2">
+                        <input
+                          type="date"
+                          className="h-8 rounded-[var(--radius-sm)] border border-border bg-input px-2 text-sm"
+                          value={s.sampledAt || ""}
+                          onChange={(e) => patch(s.id, { sampledAt: e.target.value })}
+                        />
                       </td>
                       <td className="py-2">
                         <input type="checkbox" checked={s.onSite} onChange={(e) => setOnSite(s.id, e.target.checked)} />
@@ -300,6 +310,7 @@ export function GraniaShell() {
                   onSite: true,
                   blendPct: 0,
                   moisturePct: 0,
+                  sampledAt: todayIso(),
                   residueG: emptyResidues(),
                 },
               ])
@@ -360,7 +371,10 @@ export function GraniaShell() {
           const lab = analyze(s.residueG);
           return (
           <section key={s.id} className="rounded-[var(--radius-lg)] border border-border bg-card p-4 sm:p-5">
-            <h2 className="text-sm font-medium">{s.name}</h2>
+            <h2 className="text-sm font-medium">
+              {s.name}
+              {s.sampledAt ? <span className="ml-2 text-xs font-normal text-muted-foreground">{s.sampledAt}</span> : null}
+            </h2>
             <p className="mt-1 text-xs text-muted-foreground">{t("grania.residueHint")}</p>
             <label className="mt-3 flex max-w-[16rem] flex-col text-[11px] text-muted-foreground">
               <FieldLabel text={`${t("grania.sandMoist")} ${s.name} [%]`} tip={t("help.graniaMoist")} tipLabel={t("grania.sandMoist")} />

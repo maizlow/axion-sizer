@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { FieldTip } from "@/components/app/field-tip";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { useLocale, useT } from "@/lib/i18n/locale";
@@ -10,6 +11,9 @@ import {
   convert,
   encoderScale,
   fmt,
+  angToRevs,
+  revsToAng,
+  type AngUnit,
   type MechKind,
 } from "@/lib/units/motion-units";
 import { Moon, Sun } from "lucide-react";
@@ -52,7 +56,7 @@ export function UnitsShell() {
   const theme = useTheme((s) => s.theme);
   const toggleTheme = useTheme((s) => s.toggle);
 
-  const [familyId, setFamilyId] = useState(FAMILIES[1].id);
+  const [familyId, setFamilyId] = useState("linSpeed");
   const family = FAMILIES.find((f) => f.id === familyId) ?? FAMILIES[0];
   const [fromId, setFromId] = useState(family.units[2]?.id ?? family.units[0].id);
   const [toId, setToId] = useState(family.units[3]?.id ?? family.units[1].id);
@@ -62,24 +66,31 @@ export function UnitsShell() {
   const toU = family.units.find((u) => u.id === toId) ?? family.units[1];
   const converted = convert(family, raw, fromU.id, toU.id);
 
-  const [ppr, setPpr] = useState(1024);
-  const [ratio, setRatio] = useState(10);
+  const [ppr, setPpr] = useState(4096);
+  const [gearboxI, setGearboxI] = useState(10);
+  const [extraI, setExtraI] = useState(1);
   const [kind, setKind] = useState<MechKind>("screw");
   const [dimDisp, setDimDisp] = useState(10);
   const [dimUnit, setDimUnit] = useState<"mm" | "in">("mm");
   const [lenUnit, setLenUnit] = useState<"mm" | "in" | "m">("mm");
   const [spdUnit, setSpdUnit] = useState<"mm_s" | "m_s" | "m_min" | "ft_min">("mm_s");
   const [freqUnit, setFreqUnit] = useState<"Hz" | "kHz">("Hz");
-  const [rpmUnit, setRpmUnit] = useState<"rpm" | "rps">("rpm");
+  const [angUnit, setAngUnit] = useState<AngUnit>("deg");
   const [counts, setCounts] = useState(4096);
   const [freqDisp, setFreqDisp] = useState(2000);
-  const [nMotDisp, setNMotDisp] = useState(1500);
+  const [nMotRpm, setNMotRpm] = useState(1500);
+  const [speedFrom, setSpeedFrom] = useState<"motor" | "load">("motor");
+  const [loadAngS, setLoadAngS] = useState(90);
 
+  const i = Math.max(gearboxI, 1e-12) * Math.max(extraI, 1e-12);
   const dimMm = dimDisp * (dimUnit === "in" ? 25.4 : 1);
   const freqHz = freqUnit === "kHz" ? freqDisp * 1000 : freqDisp;
-  const nMot = rpmUnit === "rps" ? nMotDisp * 60 : nMotDisp;
+  const nMot = speedFrom === "motor" ? nMotRpm : angToRevs(loadAngS, angUnit) * 60 * i;
+  const nLoad = nMot / i;
+  const loadAngSOut = revsToAng(nLoad / 60, angUnit);
+  const motRpmOut = nMot;
 
-  const scale = useMemo(() => encoderScale({ ppr, ratio, kind, dimMm }), [ppr, ratio, kind, dimMm]);
+  const scale = useMemo(() => encoderScale({ ppr, ratio: i, kind, dimMm }), [ppr, i, kind, dimMm]);
   const toLen = (mm: number) => {
     if (lenUnit === "in") return mm / 25.4;
     if (lenUnit === "m") return mm / 1000;
@@ -95,13 +106,23 @@ export function UnitsShell() {
   const spdLabel = spdUnit === "mm_s" ? "mm/s" : spdUnit === "m_s" ? "m/s" : spdUnit === "m_min" ? "m/min" : "ft/min";
   const pos = toLen(counts * scale.mmPerPulse);
   const vel = toSpd(freqHz * scale.mmPerPulse);
-  const nLoad = nMot / Math.max(ratio, 1e-9);
-  const nLoadOut = rpmUnit === "rps" ? nLoad / 60 : nLoad;
+  const pprSafe = Math.max(ppr, 1e-9);
+  const motorRevsPerPulse = 1 / pprSafe;
+  const loadRevsPerPulse = motorRevsPerPulse / i;
+  const angMotPulse = revsToAng(motorRevsPerPulse, angUnit);
+  const angLoadPulse = revsToAng(loadRevsPerPulse, angUnit);
+  const angLoadPerMotRev = revsToAng(1 / i, angUnit);
+  const motorRevs = counts / pprSafe;
+  const loadRevs = motorRevs / i;
+  const angMot = revsToAng(motorRevs, angUnit);
+  const angLoad = revsToAng(loadRevs, angUnit);
+  const freqLoadRevsS = freqHz / pprSafe / i;
+  const angSpdLoad = revsToAng(freqLoadRevsS, angUnit);
 
   const dimName = kind === "screw" ? `lead_${dimUnit}` : `D_${dimUnit}`;
   const dimToMm = dimUnit === "in" ? `${dimName} * 25.4` : dimName;
   const travelLine = kind === "screw" ? `travel_mm = ${dimToMm}` : `travel_mm = PI * (${dimToMm})`;
-  const rpmName = rpmUnit === "rps" ? "rps" : "rpm";
+  const angName = angUnit;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -234,7 +255,10 @@ export function UnitsShell() {
           <p className="mt-1 text-sm text-muted-foreground">{t("units.encoderHint")}</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-              {t("units.ppr")}
+              <span className="inline-flex items-center gap-1">
+                {t("units.ppr")}
+                <FieldTip text={t("help.unitsPpr")} label={t("units.ppr")} />
+              </span>
               <input
                 type="number"
                 className={`${field} font-mono`}
@@ -243,12 +267,27 @@ export function UnitsShell() {
               />
             </label>
             <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-              {t("units.ratio")}
+              <span className="inline-flex items-center gap-1">
+                {t("units.gearboxI")}
+                <FieldTip text={t("help.unitsGearboxI")} label={t("units.gearboxI")} />
+              </span>
               <input
                 type="number"
                 className={`${field} font-mono`}
-                value={ratio}
-                onChange={(e) => setRatio(Number(e.target.value))}
+                value={gearboxI}
+                onChange={(e) => setGearboxI(Number(e.target.value))}
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1">
+                {t("units.extraI")}
+                <FieldTip text={t("help.unitsExtraI")} label={t("units.extraI")} />
+              </span>
+              <input
+                type="number"
+                className={`${field} font-mono`}
+                value={extraI}
+                onChange={(e) => setExtraI(Number(e.target.value))}
               />
             </label>
             <label className="flex flex-col gap-1 text-xs text-muted-foreground">
@@ -284,6 +323,11 @@ export function UnitsShell() {
               </span>
             </label>
           </div>
+          <p className="mt-2 font-mono text-xs text-muted-foreground">
+            {t("units.totalI")} = {fmt(gearboxI)} × {fmt(extraI)} = {fmt(i)}
+            {" · "}
+            1 {t("units.loadRev")} = {fmt(i)} {t("units.motRev")} = {fmt(revsToAng(i, angUnit))} {angName} {t("units.motor")}
+          </p>
 
           <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
             <label className="flex items-center gap-2">
@@ -311,6 +355,18 @@ export function UnitsShell() {
                 <option value="ft_min">ft/min</option>
               </select>
             </label>
+            <label className="flex items-center gap-2">
+              {t("units.outAng")}
+              <select
+                className="h-8 rounded-[var(--radius-sm)] border border-border bg-input px-2 text-sm text-foreground"
+                value={angUnit}
+                onChange={(e) => setAngUnit(e.target.value as AngUnit)}
+              >
+                <option value="deg">deg</option>
+                <option value="rad">rad</option>
+                <option value="rev">rev</option>
+              </select>
+            </label>
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-4">
@@ -321,6 +377,10 @@ export function UnitsShell() {
             />
             <Stat label={t("units.perMot", { u: lenLabel })} value={`${fmt(toLen(scale.mmPerMotorRev))} ${lenLabel}`} />
             <Stat label={t("units.perLoad", { u: lenLabel })} value={`${fmt(toLen(scale.mmPerLoadRev))} ${lenLabel}`} />
+            <Stat label={t("units.motAngPulse", { u: angName })} value={`${fmt(angMotPulse)} ${angName}`} />
+            <Stat label={t("units.loadAngPulse", { u: angName })} value={`${fmt(angLoadPulse)} ${angName}`} />
+            <Stat label={t("units.pulsePerAng", { u: angName })} value={fmt(1 / Math.max(angLoadPulse, 1e-12))} />
+            <Stat label={t("units.loadAngMot", { u: angName })} value={`${fmt(angLoadPerMotRev)} ${angName}`} />
           </div>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -334,6 +394,10 @@ export function UnitsShell() {
               />
               <span className="font-mono text-foreground/80">
                 {fmt(pos)} {lenLabel}
+                {" · "}
+                {fmt(angLoad)} {angName} {t("units.load")}
+                {" · "}
+                {fmt(angMot)} {angName} {t("units.motor")}
               </span>
             </label>
             <label className="flex flex-col gap-1 text-xs text-muted-foreground">
@@ -361,33 +425,38 @@ export function UnitsShell() {
               </span>
               <span className="font-mono text-foreground/80">
                 {fmt(vel)} {spdLabel}
+                {" · "}
+                {fmt(angSpdLoad)} {angName}/s {t("units.load")}
               </span>
             </label>
             <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-              {t("units.nMot")} [{rpmName}]
-              <span className="flex overflow-hidden rounded-[var(--radius-sm)] border border-border">
-                <input
-                  type="number"
-                  className="h-10 min-w-0 flex-1 bg-input px-3 font-mono text-sm text-foreground"
-                  value={nMotDisp}
-                  onChange={(e) => setNMotDisp(Number(e.target.value))}
-                />
-                <select
-                  className={unitPick}
-                  value={rpmUnit}
-                  onChange={(e) => {
-                    const next = e.target.value as "rpm" | "rps";
-                    const rpm = rpmUnit === "rps" ? nMotDisp * 60 : nMotDisp;
-                    setRpmUnit(next);
-                    setNMotDisp(next === "rps" ? rpm / 60 : rpm);
-                  }}
-                >
-                  <option value="rpm">rpm</option>
-                  <option value="rps">1/s</option>
-                </select>
-              </span>
+              {t("units.nMot")} [rpm]
+              <input
+                type="number"
+                className={`${field} font-mono`}
+                value={speedFrom === "motor" ? nMotRpm : motRpmOut}
+                onChange={(e) => {
+                  setSpeedFrom("motor");
+                  setNMotRpm(Number(e.target.value));
+                }}
+              />
               <span className="font-mono text-foreground/80">
-                {fmt(nLoadOut)} {t("units.loadRpm", { u: rpmName })}
+                {fmt(loadAngSOut)} {angName}/s {t("units.load")}
+              </span>
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+              {t("units.nLoadAng")} [{angName}/s]
+              <input
+                type="number"
+                className={`${field} font-mono`}
+                value={speedFrom === "load" ? loadAngS : loadAngSOut}
+                onChange={(e) => {
+                  setSpeedFrom("load");
+                  setLoadAngS(Number(e.target.value));
+                }}
+              />
+              <span className="font-mono text-foreground/80">
+                {fmt(motRpmOut)} rpm {t("units.motor")}
               </span>
             </label>
           </div>
@@ -395,11 +464,26 @@ export function UnitsShell() {
           <div className="mt-4 flex flex-col gap-2">
             <CopyBlock
               label={t("units.plcScale")}
-              code={`${travelLine}\nmm_per_pulse = travel_mm / (i * PPR)\nposition_mm = counts * mm_per_pulse\nv_mm_s = f_Hz * mm_per_pulse\nn_load_rpm = n_motor_rpm / i`}
+              code={`${travelLine}\ni = i_gb * i_extra\nmm_per_pulse = travel_mm / (i * PPR)\n${angName}_motor_per_pulse = ${angUnit === "deg" ? "360" : angUnit === "rad" ? "2*PI" : "1"} / PPR\n${angName}_load_per_pulse = ${angUnit === "deg" ? "360" : angUnit === "rad" ? "2*PI" : "1"} / (i * PPR)\nposition_mm = counts * mm_per_pulse\n${angName}_load = counts * ${angName}_load_per_pulse\nv_mm_s = f_Hz * mm_per_pulse\nload_${angName}_s = n_motor_rpm * ${angUnit === "deg" ? "6" : angUnit === "rad" ? "(2*PI/60)" : "(1/60)"} / i\nn_motor_rpm = load_${angName}_s * i / ${angUnit === "deg" ? "6" : angUnit === "rad" ? "(2*PI/60)" : "(1/60)"}`}
             />
             <CopyBlock
-              label={t("units.plcNum")}
-              code={`PPR = ${ppr}\ni = ${ratio}\n${dimName} = ${dimDisp}\n${lenLabel}_per_pulse = ${fmt(toLen(scale.mmPerPulse))}\nposition_${lenLabel} = counts * ${fmt(toLen(scale.mmPerPulse))}\nv_${spdLabel.replace("/", "_")} = ${fmt(vel / Math.max(freqHz, 1e-9))} * f_Hz\nn_load_${rpmName} = n_motor_${rpmName} / ${ratio}`}
+              label={t("units.namedValues")}
+              code={[
+                `${t("units.ppr")} = ${ppr}`,
+                `${t("units.gearboxI")} = ${gearboxI}`,
+                `${t("units.extraI")} = ${extraI}`,
+                `${t("units.totalI")} = ${fmt(i)}`,
+                `${t("units.mech")} = ${t(`units.${kind}`)}`,
+                `${kind === "screw" ? t("units.lead") : t("units.dia")} = ${dimDisp} ${dimUnit}`,
+                `${t("units.outLen")} = ${lenLabel}`,
+                `${t("units.outSpd")} = ${spdLabel}`,
+                `${t("units.outAng")} = ${angName}`,
+                `${t("units.counts")} = ${counts}`,
+                `${t("units.freq")} = ${freqDisp} ${freqUnit}`,
+                `${t("units.nMot")} = ${fmt(motRpmOut)} rpm`,
+                `${t("units.nLoadAng")} = ${fmt(loadAngSOut)} ${angName}/s`,
+                `${t("units.pulsePerAng", { u: angName })} = ${fmt(1 / Math.max(angLoadPulse, 1e-12))}`,
+              ].join("\n")}
             />
           </div>
         </section>

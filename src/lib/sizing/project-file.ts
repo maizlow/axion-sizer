@@ -1,5 +1,5 @@
 import { normalizePhase } from "./cycle";
-import type { ApplicationId, CycleSegment, GearboxKind, Inputs, MotionCycle, MotorKind } from "./types";
+import type { ApplicationId, CycleSegment, GearboxKind, Inputs, MotionCycle, MotorKind, TravelUnit } from "./types";
 
 export const PROJECT_KIND = "axion-sizer-project";
 export const PROJECT_VERSION = 1;
@@ -58,6 +58,9 @@ export function parseProject(raw: string): AxionProject {
     inputs,
     cycle: {
       enabled: Boolean(data.cycle.enabled),
+      travelUnit: (["m", "mm", "deg"].includes(String(data.cycle.travelUnit))
+        ? data.cycle.travelUnit
+        : "mm") as TravelUnit,
       segments: (data.cycle.segments ?? []).map((seg) => ({
         ...seg,
         inclineDir: normalizePhase(seg.inclineDir),

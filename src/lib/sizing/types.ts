@@ -151,6 +151,7 @@ export interface MatchScore {
 
 export type AccelLaw = "linear" | "sin2" | "jerk";
 export type InclineDir = "accel" | "decel" | "hold";
+export type TravelUnit = "m" | "mm" | "deg";
 
 export interface CycleSegment {
   id: string;
@@ -167,6 +168,7 @@ export interface CycleSegment {
 
 export interface MotionCycle {
   enabled: boolean;
+  travelUnit: TravelUnit;
   segments: CycleSegment[];
 }
 

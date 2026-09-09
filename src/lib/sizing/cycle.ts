@@ -1,4 +1,4 @@
-import type { AccelLaw, ApplicationId, CycleSegment, InclineDir, Inputs, MotionCycle } from "./types";
+import type { AccelLaw, ApplicationId, CycleSegment, InclineDir, Inputs, MotionCycle, TravelUnit } from "./types";
 import { getApplication } from "./applications";
 
 export const INCLINE_OPTS: { value: InclineDir; label: string }[] = [
@@ -18,6 +18,41 @@ export const ACCEL_LAW_OPTS: { value: AccelLaw; label: string }[] = [
   { value: "sin2", label: "sin²" },
   { value: "jerk", label: "Jerk-limited" },
 ];
+
+export const TRAVEL_UNITS: TravelUnit[] = ["mm", "m", "deg"];
+
+/** SI = display × k. Linear SI is m, m/s, m/s². Angular SI is rad, rad/s, rad/s². */
+export function travelK(unit: TravelUnit): number {
+  if (unit === "mm") return 0.001;
+  if (unit === "deg") return Math.PI / 180;
+  return 1;
+}
+
+export function velToDisp(si: number, unit: TravelUnit): number {
+  return si / travelK(unit);
+}
+
+export function velFromDisp(disp: number, unit: TravelUnit): number {
+  return disp * travelK(unit);
+}
+
+export function distToDisp(distanceMm: number, unit: TravelUnit): number {
+  return distanceMm / 1000 / travelK(unit);
+}
+
+export function distFromDisp(disp: number, unit: TravelUnit): number {
+  return disp * travelK(unit) * 1000;
+}
+
+export function travelLabels(unit: TravelUnit): { v: string; a: string; s: string } {
+  if (unit === "mm") return { v: "mm/s", a: "mm/s²", s: "mm" };
+  if (unit === "deg") return { v: "deg/s", a: "deg/s²", s: "deg" };
+  return { v: "m/s", a: "m/s²", s: "m" };
+}
+
+export function defaultTravelUnit(id: ApplicationId): TravelUnit {
+  return getApplication(id).group === "rotary" ? "deg" : "mm";
+}
 
 export function appsWithCycle(id: ApplicationId): boolean {
   return !["mixer", "fan", "pump"].includes(id);
@@ -53,7 +88,7 @@ function speedSi(appId: ApplicationId, inputs: Inputs): number {
   const key = app.fields.find((f) => f.key === "speedMps" || f.key === "hookSpeedMps" || f.key === "lineSpeedMps")?.key;
   if (!key) {
     const rpm = Number(inputs.speedRpm ?? 0);
-    return Number.isFinite(rpm) ? rpm / 60 : 0.5;
+    return Number.isFinite(rpm) ? (rpm * 2 * Math.PI) / 60 : 0.5;
   }
   const field = app.fields.find((f) => f.key === key);
   const raw = Number(inputs[key] ?? field?.defaultValue ?? 0);
@@ -124,7 +159,7 @@ export function relinkPositions(segments: CycleSegment[]): CycleSegment[] {
 }
 
 export function defaultCycle(appId: ApplicationId, inputs: Inputs): MotionCycle {
-  if (!appsWithCycle(appId)) return { enabled: false, segments: [] };
+  if (!appsWithCycle(appId)) return { enabled: false, travelUnit: defaultTravelUnit(appId), segments: [] };
   const v = Math.max(0.01, speedSi(appId, inputs));
   const t = accelTimeSi(appId, inputs);
   const payloadKg = 0;
@@ -176,7 +211,7 @@ export function defaultCycle(appId: ApplicationId, inputs: Inputs): MotionCycle 
     },
     "all",
   );
-  return { enabled: true, segments: relinkPositions([a1, a2, dwell]) };
+  return { enabled: true, travelUnit: defaultTravelUnit(appId), segments: relinkPositions([a1, a2, dwell]) };
 }
 
 export function peakAccel(seg: CycleSegment): number {

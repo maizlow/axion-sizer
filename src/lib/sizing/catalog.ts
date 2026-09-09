@@ -218,34 +218,41 @@ export const RATIO_SETS: { family: string; one: number[]; two: number[]; note: s
 ];
 
 export const CATALOG_SOURCE =
-  "Representative CM3C / CM3P standstill figures, published PS.F / PS.C integer ratios, and MOVITRAC advanced 400 V sizes by output current. Confirm every type code in official SEW catalogs and Workbench — this table is not licensed and is not complete.";
+  "CM3C / CM3P standstill figures and PS.F / PS.C ratios are representative. MOVITRAC advanced 3×380–500 V sizes follow SEW ecodesign data 31968821 (type key 33957886): code = I_N × 10. Confirm in Workbench. Not licensed, not complete options.";
 
-/** Representative MOVITRAC advanced, 3×400 V. Number in the type is rated output current ×10. Overload 150%. */
+/** Official MOVITRAC advanced MCX91A, 3×380–500 V. Code = nominal output current ×10. Overload 150% / 30 s. Source: SEW 31968821. */
 const MCA_ROWS: { code: string; kw: number; iA: number }[] = [
   { code: "0010", kw: 0.25, iA: 1.0 },
-  { code: "0014", kw: 0.37, iA: 1.4 },
-  { code: "0018", kw: 0.55, iA: 1.8 },
-  { code: "0024", kw: 0.75, iA: 2.4 },
+  { code: "0016", kw: 0.37, iA: 1.6 },
+  { code: "0020", kw: 0.55, iA: 2.0 },
+  { code: "0025", kw: 0.75, iA: 2.5 },
   { code: "0032", kw: 1.1, iA: 3.2 },
-  { code: "0042", kw: 1.5, iA: 4.2 },
-  { code: "0058", kw: 2.2, iA: 5.8 },
-  { code: "0072", kw: 3.0, iA: 7.2 },
+  { code: "0040", kw: 1.5, iA: 4.0 },
+  { code: "0055", kw: 2.2, iA: 5.5 },
+  { code: "0070", kw: 3.0, iA: 7.0 },
   { code: "0095", kw: 4.0, iA: 9.5 },
-  { code: "0124", kw: 5.5, iA: 12.4 },
-  { code: "0155", kw: 7.5, iA: 15.5 },
-  { code: "0230", kw: 11, iA: 23 },
-  { code: "0320", kw: 15, iA: 32 },
-  { code: "0380", kw: 18.5, iA: 38 },
-  { code: "0470", kw: 22, iA: 47 },
-  { code: "0610", kw: 30, iA: 61 },
-  { code: "0730", kw: 37, iA: 73 },
-  { code: "0900", kw: 45, iA: 90 },
-  { code: "1100", kw: 55, iA: 110 },
+  { code: "0125", kw: 5.5, iA: 12.5 },
+  { code: "0160", kw: 7.5, iA: 16.0 },
+  { code: "0240", kw: 11, iA: 24.0 },
+  { code: "0320", kw: 15, iA: 32.0 },
+  { code: "0460", kw: 22, iA: 46.0 },
+  { code: "0620", kw: 30, iA: 62.0 },
+  { code: "0750", kw: 37, iA: 75.0 },
+  { code: "0910", kw: 45, iA: 91.0 },
+  { code: "1130", kw: 55, iA: 113.0 },
+  { code: "1490", kw: 75, iA: 149.0 },
+  { code: "1770", kw: 90, iA: 177.0 },
+  { code: "2200", kw: 110, iA: 220.0 },
+  { code: "2500", kw: 132, iA: 250.0 },
+  { code: "3000", kw: 160, iA: 300.0 },
+  { code: "3800", kw: 200, iA: 380.0 },
+  { code: "4700", kw: 250, iA: 470.0 },
+  { code: "5880", kw: 315, iA: 588.0 },
 ];
 
 export const INVERTERS: Inverter[] = MCA_ROWS.map((row) => ({
   id: `mcx91a-${row.code}`,
-  name: `MCX91A-${row.code}`,
+  name: `MCX91A-${row.code}-5E3-4`,
   family: "MOVITRAC advanced",
   ratedPowerKw: row.kw,
   ratedCurrentA: row.iA,

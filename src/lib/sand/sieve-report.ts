@@ -138,7 +138,13 @@ export function buildSievePdf(sands: SandSource[], envelope: EnvelopeRow[]): { b
     ensure(200);
     text(`${s.name}${s.onSite ? "" : "  (not on site)"}`, 48, y, 12, "F2");
     y -= 14;
-    text(`Sample ${a.total.toFixed(0)} g    blend ${s.blendPct}%    moisture ${s.moisturePct}%`, 48, y, 9, "F1");
+    text(
+      `Sampled ${s.sampledAt || "-"}    sample ${a.total.toFixed(0)} g    blend ${s.blendPct}%    moisture ${s.moisturePct}%`,
+      48,
+      y,
+      9,
+      "F1",
+    );
     y -= 16;
     text("Sieve", 48, y, 8, "F1");
     text("Residue g", 120, y, 8, "F1");

@@ -33,6 +33,15 @@ export const FAMILIES: UnitFamily[] = [
     ],
   },
   {
+    id: "angle",
+    si: "rad",
+    units: [
+      { id: "deg", label: "deg", toSi: Math.PI / 180 },
+      { id: "rad", label: "rad", toSi: 1 },
+      { id: "rev", label: "rev", toSi: 2 * Math.PI },
+    ],
+  },
+  {
     id: "angSpeed",
     si: "rad/s",
     units: [
@@ -109,4 +118,40 @@ export function fmt(n: number, digits = 6): string {
   if (a >= 1000) return n.toFixed(2);
   if (a >= 1) return n.toPrecision(6).replace(/\.?0+$/, "");
   return n.toExponential(4);
+}
+
+export type AngUnit = "deg" | "rad" | "rev";
+export type ShaftSpeedUnit = "rpm" | "rps" | "deg_s" | "rad_s";
+
+export function revsToAng(revs: number, u: AngUnit): number {
+  if (u === "deg") return revs * 360;
+  if (u === "rad") return revs * 2 * Math.PI;
+  return revs;
+}
+
+export function angToRevs(ang: number, u: AngUnit): number {
+  if (u === "deg") return ang / 360;
+  if (u === "rad") return ang / (2 * Math.PI);
+  return ang;
+}
+
+export function rpmFrom(v: number, u: ShaftSpeedUnit): number {
+  if (u === "rps") return v * 60;
+  if (u === "deg_s") return v / 6;
+  if (u === "rad_s") return (v * 60) / (2 * Math.PI);
+  return v;
+}
+
+export function rpmTo(rpm: number, u: ShaftSpeedUnit): number {
+  if (u === "rps") return rpm / 60;
+  if (u === "deg_s") return rpm * 6;
+  if (u === "rad_s") return (rpm * 2 * Math.PI) / 60;
+  return rpm;
+}
+
+export function shaftSpeedLabel(u: ShaftSpeedUnit): string {
+  if (u === "rps") return "1/s";
+  if (u === "deg_s") return "deg/s";
+  if (u === "rad_s") return "rad/s";
+  return "rpm";
 }

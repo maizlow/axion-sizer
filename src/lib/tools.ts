@@ -60,6 +60,16 @@ export const TOOLS: InternalTool[] = [
     ready: true,
     mark: "grania",
   },
+  {
+    id: "lobe",
+    path: "lobe",
+    name: "Lobe",
+    nameSv: "Lobe",
+    tag: "Cam curve editor — drag points on an X–Y plot.",
+    tagSv: "Kamkurva — dra punkter i ett X–Y-diagram.",
+    ready: true,
+    mark: "lobe",
+  },
 ];
 
 export function toolHref(path: string): string {

@@ -392,7 +392,7 @@ function sizeRackOrGantry(
   return finish(r);
 }
 
-function sizeRotary(appId: ApplicationId, inputs: Inputs): SizingResult {
+function sizeRotary(appId: ApplicationId, inputs: Inputs, cycle?: MotionCycle): SizingResult {
   const r = baseResult();
   const j = toSi(appId, inputs, "tableInertia") + toSi(appId, inputs, "payloadInertia");
   const n = toSi(appId, inputs, "speedRpm");
@@ -418,6 +418,12 @@ function sizeRotary(appId: ApplicationId, inputs: Inputs): SizingResult {
     { name: "Peak torque", expression: "T_pk = (T_j + T_fric + T_unb) / η", value: r.peakTorqueNm, unit: "N·m" },
     { name: "RMS torque", expression: "T_rms from duty cycle", value: r.rmsTorqueNm, unit: "N·m" },
   ];
+  overlayCycle(r, cycle, {
+    payloadDefaultKg: 0,
+    toForce: (_pay, acc) => acc,
+    toTorque: (alpha) => (j * alpha + tFric + tUnb) / eta,
+    vToRpm: (omega) => (omega * 60) / (2 * Math.PI),
+  });
   return finish(r);
 }
 
@@ -508,7 +514,7 @@ export function calculateSizing(appId: ApplicationId, inputs: Inputs, cycle?: Mo
     case "gantry":
       return sizeRackOrGantry(appId, inputs, "pulleyDiaM", false, cycle);
     case "rotary-table":
-      return sizeRotary(appId, inputs);
+      return sizeRotary(appId, inputs, cycle);
     case "mixer":
       return sizeMixer(appId, inputs);
     case "fan":

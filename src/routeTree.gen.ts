@@ -14,6 +14,7 @@ import { Route as AxionRouteImport } from './routes/axion'
 import { Route as CaliperRouteImport } from './routes/caliper'
 import { Route as GraniaRouteImport } from './routes/grania'
 import { Route as LibrarianRouteImport } from './routes/librarian'
+import { Route as LobeRouteImport } from './routes/lobe'
 import { Route as UnitsRouteImport } from './routes/units'
 
 const IndexRoute = IndexRouteImport.update({
@@ -41,6 +42,11 @@ const LibrarianRoute = LibrarianRouteImport.update({
   path: '/librarian',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LobeRoute = LobeRouteImport.update({
+  id: '/lobe',
+  path: '/lobe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UnitsRoute = UnitsRouteImport.update({
   id: '/units',
   path: '/units',
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/caliper': typeof CaliperRoute
   '/grania': typeof GraniaRoute
   '/librarian': typeof LibrarianRoute
+  '/lobe': typeof LobeRoute
   '/units': typeof UnitsRoute
 }
 export interface FileRoutesByTo {
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/caliper': typeof CaliperRoute
   '/grania': typeof GraniaRoute
   '/librarian': typeof LibrarianRoute
+  '/lobe': typeof LobeRoute
   '/units': typeof UnitsRoute
 }
 export interface FileRoutesById {
@@ -70,13 +78,16 @@ export interface FileRoutesById {
   '/caliper': typeof CaliperRoute
   '/grania': typeof GraniaRoute
   '/librarian': typeof LibrarianRoute
+  '/lobe': typeof LobeRoute
   '/units': typeof UnitsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/axion' | '/caliper' | '/grania' | '/librarian' | '/units'
+  fullPaths:
+    '/' | '/axion' | '/caliper' | '/grania' | '/librarian' | '/lobe' | '/units'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/axion' | '/caliper' | '/grania' | '/librarian' | '/units'
+  to:
+    '/' | '/axion' | '/caliper' | '/grania' | '/librarian' | '/lobe' | '/units'
   id:
     | '__root__'
     | '/'
@@ -84,6 +95,7 @@ export interface FileRouteTypes {
     | '/caliper'
     | '/grania'
     | '/librarian'
+    | '/lobe'
     | '/units'
   fileRoutesById: FileRoutesById
 }
@@ -93,6 +105,7 @@ export interface RootRouteChildren {
   CaliperRoute: typeof CaliperRoute
   GraniaRoute: typeof GraniaRoute
   LibrarianRoute: typeof LibrarianRoute
+  LobeRoute: typeof LobeRoute
   UnitsRoute: typeof UnitsRoute
 }
 
@@ -133,6 +146,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LibrarianRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lobe': {
+      id: '/lobe'
+      path: '/lobe'
+      fullPath: '/lobe'
+      preLoaderRoute: typeof LobeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/units': {
       id: '/units'
       path: '/units'
@@ -149,6 +169,7 @@ const rootRouteChildren: RootRouteChildren = {
   CaliperRoute: CaliperRoute,
   GraniaRoute: GraniaRoute,
   LibrarianRoute: LibrarianRoute,
+  LobeRoute: LobeRoute,
   UnitsRoute: UnitsRoute,
 }
 export const routeTree = rootRouteImport

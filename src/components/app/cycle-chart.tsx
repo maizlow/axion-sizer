@@ -1,7 +1,9 @@
-import { sampleCycle, segmentBounds } from "@/lib/sizing/cycle";
+import { sampleCycle, segmentBounds, travelLabels } from "@/lib/sizing/cycle";
 import type { MotionCycle } from "@/lib/sizing/types";
 
 export function CycleChart({ cycle }: { cycle: MotionCycle }) {
+  const unit = cycle.travelUnit ?? "mm";
+  const labels = travelLabels(unit);
   const samples = sampleCycle(cycle, 20);
   const bounds = segmentBounds(cycle);
   if (samples.length < 2) return null;
@@ -77,11 +79,11 @@ export function CycleChart({ cycle }: { cycle: MotionCycle }) {
       <div className="flex flex-wrap gap-4 px-2 pb-1 text-[11px] text-muted-foreground">
         <span className="inline-flex items-center gap-1.5">
           <span className="inline-block h-0.5 w-4 bg-[#5b8fd4]" />
-          Velocity
+          Velocity ({labels.v})
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span className="inline-block h-0.5 w-4 bg-[#d45aa0]" />
-          Acceleration
+          Acceleration ({labels.a})
         </span>
         <span>Orange band = first segment</span>
       </div>

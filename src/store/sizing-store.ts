@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { defaultInputs } from "@/lib/sizing/applications";
 import { defaultCycle } from "@/lib/sizing/cycle";
-import type { ApplicationId, CycleSegment, GearboxKind, Inputs, MotionCycle, MotorKind } from "@/lib/sizing/types";
+import type { ApplicationId, CycleSegment, GearboxKind, Inputs, MotionCycle, MotorKind, TravelUnit } from "@/lib/sizing/types";
 import { emptySegment, fillKinematics, relinkPositions } from "@/lib/sizing/cycle";
 
 interface SizingState {
@@ -17,6 +17,7 @@ interface SizingState {
   setApplication: (id: ApplicationId) => void;
   setInput: (key: string, value: number | string) => void;
   setCycleEnabled: (enabled: boolean) => void;
+  setTravelUnit: (unit: TravelUnit) => void;
   updateSegment: (id: string, patch: Partial<CycleSegment>, edited: keyof CycleSegment) => void;
   addSegment: () => void;
   removeSegment: (id: string) => void;
@@ -57,6 +58,7 @@ export const useSizingStore = create<SizingState>()((set, get) => ({
   },
   setInput: (key, value) => set({ inputs: { ...get().inputs, [key]: value } }),
   setCycleEnabled: (enabled) => set({ cycle: { ...get().cycle, enabled } }),
+  setTravelUnit: (travelUnit) => set({ cycle: { ...get().cycle, travelUnit } }),
   updateSegment: (id, patch, edited) => {
     const segs = get().cycle.segments.map((s) => {
       if (s.id !== id) return s;
@@ -104,7 +106,11 @@ export const useSizingStore = create<SizingState>()((set, get) => ({
     set({
       applicationId: data.applicationId,
       inputs: data.inputs,
-      cycle: data.cycle,
+      cycle: {
+        ...data.cycle,
+        travelUnit: data.cycle.travelUnit === "m" || data.cycle.travelUnit === "deg" ? data.cycle.travelUnit : "mm",
+        segments: data.cycle.segments ?? [],
+      },
       motorKinds: data.motorKinds.length ? data.motorKinds : ["cm3c"],
       gearboxKinds: data.gearboxKinds.length ? data.gearboxKinds : ["psf"],
       selectedMatchId: data.selectedMatchId,
