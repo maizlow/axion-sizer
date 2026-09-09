@@ -39,7 +39,7 @@ export function pickInverter(rmsA: number, peakA: number, preferId?: string | nu
 }
 
 export function matchDrives(result: SizingResult, filters: MatchFilters, inverterId?: string | null): MatchScore[] {
-  const needCont = result.rmsTorqueNm * result.safetyFactor;
+  const needCont = (result.thermalRmsNm || result.rmsTorqueNm) * result.safetyFactor;
   const needPeak = Math.max(result.peakTorqueNm, result.holdingTorqueNm) * result.safetyFactor;
   const z = startsPerHour(filters.cycle, result.dutyCycle);
   const needSpeed = result.outputSpeedRpm;
@@ -73,7 +73,7 @@ export function matchDrives(result: SizingResult, filters: MatchFilters, inverte
         hoursPerDay: filters.hoursPerDay,
         startsPerHour: z,
       });
-      const tEq = Math.max(result.rmsTorqueNm, result.holdingTorqueNm);
+      const tEq = Math.max(result.thermalRmsNm || result.rmsTorqueNm, result.holdingTorqueNm);
       const gbNeed = tEq * sfb.fb;
       const tPeakLoad = Math.max(result.peakTorqueNm, result.holdingTorqueNm);
       const tWork = Math.max(tEq, tPeakLoad, 1e-6);

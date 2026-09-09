@@ -104,9 +104,9 @@ export function operatingPoints(result: SizingResult, match: MatchScore, _cycle?
   const eta = Math.max(match.gearbox.efficiency, 0.5);
   const nLoad = result.outputSpeedRpm;
   const nMotCruise = nLoad * i;
-  const tMotRms = result.rmsTorqueNm / (i * eta);
+  const tMotRms = (result.thermalRmsNm || result.rmsTorqueNm) / (i * eta);
   const tMotPeak = result.peakTorqueNm / (i * eta);
-  const tGbRms = result.rmsTorqueNm;
+  const tGbRms = result.thermalRmsNm || result.rmsTorqueNm;
   const tGbPeak = result.peakTorqueNm;
 
   const motor: OpPt[] = [

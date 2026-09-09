@@ -27,6 +27,8 @@ export const FIELD_HELP: Record<string, string> = {
   extraRatio:
     "Gearing after the catalog gearbox (sprockets, belt, extra stage). Driven / drive teeth. 1 means the gearbox output is the load shaft.",
   extraEta: "Efficiency of that extra stage, percent. Used only when additional i is not 1. Chain typically 96–98%.",
+  edHour:
+    "Minutes this motion profile runs per hour. 40% = 24 min/h, IEC S3-40. 100% = the cycle repeats all hour (S1). Peak torque is unchanged; only the motor S1 check uses T_rms·√ED.",
   dutyCycle:
     "Running time as a percent of the full cycle. Feeds RMS torque. Hidden when the travel table is on; then duty is computed from the steps.",
   safetyFactor:
