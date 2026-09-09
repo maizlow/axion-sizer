@@ -1,6 +1,6 @@
-import { getApplication } from "./applications";
-import { cycleSummary, cycleOverridesPayload, peakAccel } from "./cycle";
-import type { ApplicationId, Inputs, MotionCycle, SizingResult } from "./types";
+import { getApplication } from "./applications.ts";
+import { cycleSummary, cycleOverridesPayload, peakAccel } from "./cycle.ts";
+import type { ApplicationId, Inputs, MotionCycle, SizingResult } from "./types.ts";
 
 const G = 9.80665;
 
@@ -220,11 +220,10 @@ function sizeLinearBeltLike(
   ];
   overlayCycle(r, cycle, {
     payloadDefaultKg: toSi(appId, inputs, massKeys.payload),
-    toForce: (pay, acc, phase) => {
+    toForce: (pay, acc, _phase) => {
       const extra = toSi(appId, inputs, massKeys.extra);
       const mt = pay + extra;
-      const gSign = phase === "decel" ? -1 : phase === "hold" ? 0 : 1;
-      return gSign * mt * G * Math.sin(theta) + mu * mt * G * Math.cos(theta) + mt * acc;
+      return mt * G * Math.sin(theta) + mu * mt * G * Math.cos(theta) + mt * acc;
     },
     toTorque: (f) => (f * radius) / eta,
     vToRpm: (vel) => (vel > 0 && d > 0 ? (vel / (Math.PI * d)) * 60 : 0),
@@ -284,11 +283,10 @@ function sizeHoistLike(
   if (mCw > 0) r.notes.push("Counterweight cuts gravity torque but adds inertia on raise and lower.");
   overlayCycle(r, cycle, {
     payloadDefaultKg: mPay,
-    toForce: (pay, acc, phase) => {
+    toForce: (pay, acc, _phase) => {
       const unbal = pay - mCw;
       const inert = pay + mCw;
-      const gSign = phase === "decel" ? -1 : phase === "hold" ? 0 : 1;
-      return (gSign * unbal * G + inert * acc) / falls;
+      return (unbal * G + inert * acc) / falls;
     },
     toTorque: (f) => (f * radius) / eta,
     vToRpm: (vel) => (d > 0 ? ((vel * falls) / (Math.PI * d)) * 60 : 0),
@@ -359,13 +357,12 @@ function sizeScrew(appId: ApplicationId, inputs: Inputs, cycle?: MotionCycle): S
   if (mCw > 0) r.notes.push("Counterweight cuts gravity torque but adds inertia on raise and lower.");
   overlayCycle(r, cycle, {
     payloadDefaultKg: mPay,
-    toForce: (pay, acc, phase) => {
+    toForce: (pay, acc, _phase) => {
       const inert = pay + mCw;
       const unbal = pay - mCw;
-      const gSign = phase === "decel" ? -1 : phase === "hold" ? 0 : 1;
       const fg = unbal * G * Math.sin(theta);
       const ff = mu * inert * G * Math.cos(theta) + preload;
-      return gSign * fg + ff + inert * acc;
+      return fg + ff + inert * acc;
     },
     toTorque: (f) => (f * lead) / (2 * Math.PI * eta),
     vToRpm: (vel) => (lead > 0 ? (vel / lead) * 60 : 0),
@@ -432,13 +429,12 @@ function sizeRackOrGantry(
   }
   overlayCycle(r, cycle, {
     payloadDefaultKg: mPay,
-    toForce: (pay, acc, phase) => {
+    toForce: (pay, acc, _phase) => {
       const inert = pay + mCw;
       const unbal = pay - mCw;
-      const gSign = phase === "decel" ? -1 : phase === "hold" ? 0 : 1;
       const fg = unbal * G * Math.sin(theta);
       const ff = mu * inert * G * Math.cos(theta);
-      return gSign * fg + ff + inert * acc;
+      return fg + ff + inert * acc;
     },
     toTorque: (f) => (f * radius) / eta,
     vToRpm: (vel) => (d > 0 ? (vel / (Math.PI * d)) * 60 : 0),
@@ -446,9 +442,18 @@ function sizeRackOrGantry(
   return finish(r);
 }
 
+function rotaryInertiaKgM2(tableJ: number, payloadJ: number, payKg: number, refKg: number, tablePay: boolean): number {
+  if (!tablePay) return tableJ + payloadJ;
+  if (refKg < 1e-9) return tableJ + (payKg > 0 ? payloadJ : 0);
+  return tableJ + payloadJ * (Math.max(0, payKg) / refKg);
+}
+
 function sizeRotary(appId: ApplicationId, inputs: Inputs, cycle?: MotionCycle): SizingResult {
   const r = baseResult();
-  const j = toSi(appId, inputs, "tableInertia") + toSi(appId, inputs, "payloadInertia");
+  const jTable = toSi(appId, inputs, "tableInertia");
+  const jPay = toSi(appId, inputs, "payloadInertia");
+  const mRef = Math.max(0, toSi(appId, inputs, "payloadKg"));
+  const j = rotaryInertiaKgM2(jTable, jPay, mRef, mRef, false);
   const n = toSi(appId, inputs, "speedRpm");
   const tFric = toSi(appId, inputs, "fricTorqueNm");
   const tUnb = toSi(appId, inputs, "unbalanceNm");
@@ -472,12 +477,27 @@ function sizeRotary(appId: ApplicationId, inputs: Inputs, cycle?: MotionCycle): 
     { name: "Peak torque", expression: "T_pk = (T_j + T_fric + T_unb) / η", value: r.peakTorqueNm, unit: "N·m" },
     { name: "RMS torque", expression: "T_rms from duty cycle", value: r.rmsTorqueNm, unit: "N·m" },
   ];
+  const tablePay = cycleOverridesPayload(cycle);
   overlayCycle(r, cycle, {
-    payloadDefaultKg: 0,
-    toForce: (_pay, acc) => acc,
-    toTorque: (alpha) => (j * alpha + tFric + tUnb) / eta,
-    vToRpm: (omega) => (omega * 60) / (2 * Math.PI),
+    payloadDefaultKg: mRef,
+    toForce: (pay, acc) => {
+      const jSeg = rotaryInertiaKgM2(jTable, jPay, pay, mRef, tablePay);
+      return jSeg * acc + tFric + tUnb;
+    },
+    toTorque: (t) => t / eta,
+    vToRpm: (w) => (w * 60) / (2 * Math.PI),
   });
+  if (tablePay && cycle) {
+    const peakPay = cycle.segments.reduce((m, s) => Math.max(m, Math.max(0, Number(s.payloadKg) || 0)), 0);
+    r.loadInertiaKgm2 = rotaryInertiaKgM2(jTable, jPay, peakPay, mRef, true);
+    r.formulas.push({
+      name: "Peak cycle inertia",
+      expression: "J = J_table + J_payload · (m_pay / m_ref)",
+      value: r.loadInertiaKgm2,
+      unit: "kg·m²",
+    });
+    r.notes.push("Per-step payload scales payload inertia by m_step / m_payload from the form. Table inertia stays put.");
+  }
   return finish(r);
 }
 

@@ -1,7 +1,7 @@
 /** Short field help. Keep each string under 250 characters. */
 export const FIELD_HELP: Record<string, string> = {
   payloadKg:
-    "Translating mass the drive must move: product, carriage, tooling. Do not include gearbox or motor. Used for gravity, friction and inertia.",
+    "Mass the drive must move: product, carriage, tooling. Not gearbox or motor. On a rotary table this is the mass that matches payload inertia; cycle steps scale J_payload by m_step / this mass.",
   beltMassKg:
     "Equivalent mass of belt plus idlers that translate with the product. Estimate belt length × linear density plus rotating idler mass referred to the belt.",
   rollerMassKg:
@@ -69,6 +69,8 @@ export const CYCLE_HELP: Record<string, string> = {
   accel: "Average acceleration in the table unit per second squared. a = (v_end − v_start) / t.",
   time: "Duration of this step in seconds. Changing time recalculates acceleration and distance.",
   distanceMm: "Travel in this step, in the table unit (m, mm or deg). s = v_avg × t.",
+  payloadKg:
+    "Kilograms on this step. 0 is empty. Rotary tables scale payload inertia by this mass over the form payload mass.",
   positionMm: "Axis position at the end of this step, same unit, from the start of the cycle.",
 };
 

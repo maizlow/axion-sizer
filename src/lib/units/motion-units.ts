@@ -71,6 +71,16 @@ export const FAMILIES: UnitFamily[] = [
       { id: "lbf", label: "lbf", toSi: 4.448221615 },
     ],
   },
+  {
+    id: "inertia",
+    si: "kg·m²",
+    units: [
+      { id: "kgm2", label: "kg·m²", toSi: 1 },
+      { id: "kgcm2", label: "kg·cm²", toSi: 1e-4 },
+      { id: "gcm2", label: "g·cm²", toSi: 1e-7 },
+      { id: "lbin2", label: "lb·in²", toSi: 0.000292639653 },
+    ],
+  },
 ];
 
 export function convert(family: UnitFamily, value: number, fromId: string, toId: string): number {

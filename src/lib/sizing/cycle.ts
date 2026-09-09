@@ -1,5 +1,5 @@
-import type { AccelLaw, ApplicationId, CycleSegment, InclineDir, Inputs, MotionCycle, TravelUnit } from "./types";
-import { getApplication } from "./applications";
+import type { AccelLaw, ApplicationId, CycleSegment, InclineDir, Inputs, MotionCycle, TravelUnit } from "./types.ts";
+import { getApplication } from "./applications.ts";
 
 export const INCLINE_OPTS: { value: InclineDir; label: string }[] = [
   { value: "accel", label: "Acceleration phase" },
@@ -217,7 +217,7 @@ export function defaultCycle(appId: ApplicationId, inputs: Inputs): MotionCycle 
 export function peakAccel(seg: CycleSegment): number {
   const mean = seg.time > 1e-9 ? (seg.vEnd - seg.vStart) / seg.time : seg.accel;
   if (seg.accelLaw === "sin2") return mean * (Math.PI / 2);
-  if (seg.accelLaw === "jerk") return mean * 1.5;
+  if (seg.accelLaw === "jerk") return mean * 2;
   return mean;
 }
 

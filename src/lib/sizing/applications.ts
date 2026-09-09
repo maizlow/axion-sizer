@@ -1,4 +1,4 @@
-import type { ApplicationDef, ApplicationId, FieldDef, SelectFieldDef } from "./types";
+import type { ApplicationDef, ApplicationId, FieldDef, SelectFieldDef } from "./types.ts";
 
 function num(
   key: string,
@@ -244,6 +244,7 @@ export const APPLICATIONS: ApplicationDef[] = [
     fields: [
       num("tableInertia", "Table + fixture inertia", "kg·m²", 12, { min: 0.01, max: 5000, step: 0.1, hint: "Enter kg·m² about the rotation axis. Disk ≈ ½ m r².", diagram: "inertia" }),
       num("payloadInertia", "Payload inertia", "kg·m²", 4, { max: 5000, step: 0.1, hint: "Enter kg·m² of parts on the table, same axis.", diagram: "inertia" }),
+      num("payloadKg", "Payload mass", "kg", 100, { min: 0, max: 50000, step: 1, hint: "Kilograms of parts that the payload inertia figure corresponds to. Travel-table steps scale J_payload by m_step / this mass.", diagram: "mass" }),
       num("speedRpm", "Table speed", "rpm", 30, { min: 0.2, max: 600, hint: "Enter revolutions per minute.", diagram: "rpm" }),
       num("fricTorqueNm", "Friction torque", "N·m", 8, { max: 2000, step: 0.5, hint: "Enter newton-metres of seal and bearing drag.", diagram: "torque" }),
       num("unbalanceNm", "Unbalance / gravity torque", "N·m", 0, { max: 5000, hint: "Enter N·m. Offset payload ≈ m · g · e.", diagram: "torque" }),

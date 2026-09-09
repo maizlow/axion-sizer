@@ -5,6 +5,7 @@ import { cn } from "@/lib/cn";
 import { useLocale, useT } from "@/lib/i18n/locale";
 import { useTheme } from "@/lib/theme";
 import { MetronMark } from "@/components/brand/metron-mark";
+import { InertiaCalc } from "@/components/units/inertia-calc";
 import { hubHref } from "@/lib/tools";
 import {
   FAMILIES,
@@ -22,6 +23,9 @@ const field =
   "h-10 w-full rounded-[var(--radius-sm)] border border-border bg-input px-3 text-sm text-foreground";
 const unitPick =
   "h-10 shrink-0 border-l border-border bg-input px-2 text-xs text-foreground";
+
+const TABS = ["convert", "encoder", "inertia"] as const;
+type UnitsTab = (typeof TABS)[number];
 
 function CopyBlock({ label, code }: { label: string; code: string }) {
   const t = useT();
@@ -56,6 +60,7 @@ export function UnitsShell() {
   const theme = useTheme((s) => s.theme);
   const toggleTheme = useTheme((s) => s.toggle);
 
+  const [tab, setTab] = useState<UnitsTab>("inertia");
   const [familyId, setFamilyId] = useState("linSpeed");
   const family = FAMILIES.find((f) => f.id === familyId) ?? FAMILIES[0];
   const [fromId, setFromId] = useState(family.units[2]?.id ?? family.units[0].id);
@@ -178,9 +183,25 @@ export function UnitsShell() {
             </button>
           </div>
         </div>
+        <nav className="mx-auto grid max-w-[1100px] grid-cols-3 gap-1 px-3 pb-2 sm:flex sm:px-6 sm:pb-3">
+          {TABS.map((id) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setTab(id)}
+              className={cn(
+                "h-9 rounded-[var(--radius-sm)] px-1 text-center text-[11px] font-medium sm:h-10 sm:px-3 sm:text-sm",
+                tab === id ? "bg-muted text-foreground" : "text-muted-foreground",
+              )}
+            >
+              {t(`units.tab.${id}`)}
+            </button>
+          ))}
+        </nav>
       </header>
 
       <main className="mx-auto flex max-w-[1100px] flex-col gap-8 px-4 py-6 sm:px-6">
+        {tab === "convert" && (
         <section className="rounded-[var(--radius-lg)] border border-border bg-card p-4 sm:p-5">
           <h2 className="text-sm font-medium">{t("units.convert")}</h2>
           <div className="mt-3 flex flex-wrap gap-1.5">
@@ -249,7 +270,9 @@ export function UnitsShell() {
             />
           </div>
         </section>
+        )}
 
+        {tab === "encoder" && (
         <section className="rounded-[var(--radius-lg)] border border-border bg-card p-4 sm:p-5">
           <h2 className="text-sm font-medium">{t("units.encoder")}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{t("units.encoderHint")}</p>
@@ -487,6 +510,9 @@ export function UnitsShell() {
             />
           </div>
         </section>
+        )}
+
+        {tab === "inertia" && <InertiaCalc />}
       </main>
 
       <footer className="mx-auto max-w-[1100px] px-4 pb-8 text-xs leading-relaxed text-muted-foreground sm:px-6">

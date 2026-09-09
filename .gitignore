@@ -1,6 +1,7 @@
 node_modules
 .vercel
 dist
+dist-pages
 _site
 .output
 *.log
@@ -10,3 +11,7 @@ _site
 !.env.example
 screenshots
 .pglite
+artifacts
+attachments
+.tanstack
+.node_modules.lock

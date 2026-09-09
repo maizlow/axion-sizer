@@ -1,3 +1,7 @@
+function px(n: number): string {
+  return n.toFixed(2);
+}
+
 export function MetronMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 64 64" className={className} aria-hidden>
@@ -10,10 +14,10 @@ export function MetronMark({ className }: { className?: string }) {
         return (
           <line
             key={i}
-            x1={32 + Math.sin(a) * inner}
-            y1={32 - Math.cos(a) * inner}
-            x2={32 + Math.sin(a) * 21.2}
-            y2={32 - Math.cos(a) * 21.2}
+            x1={px(32 + Math.sin(a) * inner)}
+            y1={px(32 - Math.cos(a) * inner)}
+            x2={px(32 + Math.sin(a) * 21.2)}
+            y2={px(32 - Math.cos(a) * 21.2)}
             stroke="var(--color-foreground)"
             strokeWidth={i % 3 === 0 ? 1.6 : 1}
           />
