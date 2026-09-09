@@ -117,7 +117,7 @@ export interface SizingResult {
   loweringTorqueNm: number;
   holdingTorqueNm: number;
   rmsTorqueNm: number;
-  thermalRmsNm: number;
+  thermalRmsNm?: number;
   outputSpeedRpm: number;
   outputPowerKw: number;
   peakPowerKw: number;
@@ -125,7 +125,7 @@ export interface SizingResult {
   accelRadS2: number;
   accelTimeS: number;
   dutyCycle: number;
-  edHour: number;
+  edHour?: number;
   safetyFactor: number;
   formulas: FormulaLine[];
   warnings: string[];
